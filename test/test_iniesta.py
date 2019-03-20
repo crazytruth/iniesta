@@ -1,0 +1,19 @@
+"""
+Tests for `iniesta` module.
+"""
+import pytest
+from iniesta import iniesta
+
+
+class TestIniesta(object):
+
+    @classmethod
+    def setup_class(cls):
+        pass
+
+    def test_something(self):
+        pass
+
+    @classmethod
+    def teardown_class(cls):
+        pass
