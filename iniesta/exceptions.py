@@ -1,0 +1,2 @@
+class StopPolling(Exception):
+    pass

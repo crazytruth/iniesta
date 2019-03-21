@@ -1,0 +1,131 @@
+import botocore.exceptions
+
+from iniesta.sessions import BotoSession
+from iniesta.sns import SNSMessage
+
+from insanic.log import error_logger
+
+
+class SNSClient:
+
+    is_unavailable = None
+
+    def __init__(self, topic_arn, endpoint_url=None):
+
+        self.topic_arn = topic_arn
+        self.endpoint_url = endpoint_url
+
+    @classmethod
+    async def initialize(cls, *, topic_arn, endpoint_url=None, loop=None):
+        """
+        Class method to initialize the SNS Client. We needed to do this
+        because of asyncio functionality
+
+        :param topic_arn:
+        :param endpoint_url:
+        :return:
+        """
+        session = BotoSession.get_session(loop)
+
+        try:
+            async with session.create_client('sns', endpoint_url=endpoint_url) as client:
+                await client.get_topic_attributes(TopicArn=topic_arn)
+        except botocore.exceptions.ClientError as e:
+            error_message = f"[{e.response['Error']['Code']}]: {e.response['Error']['Message']} {topic_arn}"
+            error_logger.critical(error_message)
+            cls.is_unavailable = error_message
+        else:
+            cls.is_unavailable = None
+        finally:
+            sns_client = cls(topic_arn, endpoint_url)
+
+        return sns_client
+
+    async def _list_subscriptions_by_topic(self, next_token=None):
+        session = BotoSession.get_session()
+
+        query_args = {"TopicArn": self.topic_arn}
+
+        if next_token is not None:
+            query_args.update({"NextToken": next_token})
+
+        try:
+            async with session.create_client('sns', endpoint_url=self.endpoint_url) as client:
+                return await client.list_subscriptions_by_topic(**query_args)
+        except botocore.exceptions.ClientError as e:
+            error_message = f"[{e.response['Error']['Code']}]: {e.response['Error']['Message']} {self.topic_arn}"
+            error_logger.critical(error_message)
+            raise
+
+    async def list_subscriptions_by_topic(self):
+        """
+        Subscription:
+        {
+            'SubscriptionArn': 'string',
+            'Owner': 'string',
+            'Protocol': 'string',
+            'Endpoint': 'string',
+            'TopicArn': 'string'
+        }
+
+        :return: list of subscriptions
+        """
+
+        next_token = True
+        while next_token:
+            _subscriptions = await self._list_subscriptions_by_topic(None if next_token is True else next_token)
+
+            for _subscription in _subscriptions['Subscriptions']:
+                yield _subscription
+
+            next_token = _subscriptions.get('NextToken')
+
+    async def get_subscription_attributes(self, subscription_arn):
+
+        async with BotoSession.get_session().create_client('sns', endpoint_url=self.endpoint_url) as client:
+            return await client.get_subscription_attributes(SubscriptionArn=subscription_arn)
+
+    async def _publish(self, message_attributes):
+        """
+
+        :param message_attributes: attributes to send in aiobotocore sns publish api
+        :return:
+        """
+        if self.is_unavailable is not None:
+            error_logger.critical(f"Unable to publish to {self.topic_arn} because: {self.is_unavailable}")
+            return
+
+        session = BotoSession.get_session()
+        try:
+            async with session.create_client('sns', endpoint_url=self.endpoint_url) as client:
+                message = await client.publish(TopicArn=self.topic_arn, **message_attributes)
+                return message
+
+        except botocore.exceptions.ClientError as e:
+            error_logger.critical(f"[{e.response['Error']['Code']}]: {e.response['Error']['Message']}")
+            raise
+        except Exception as e:
+
+
+            raise
+
+    async def publish_event(self, *, event, message, version=1, **message_attributes):
+        """
+
+        :param event: the event to publish (will be used to filter)
+        :param message: message to send with event
+        :param version: a version to publish
+        :param message_attributes:
+        :return:
+        """
+        message_payload = SNSMessage(message)
+        message_payload.message = message
+
+        for ma, mv in message_attributes.items():
+            message_payload.add_attribute(ma, mv)
+
+        message_payload.add_event(event)
+        message_payload.add_number_attribute("version", version)
+
+        publish_response = await self._publish(message_payload)
+        return publish_response
