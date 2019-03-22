@@ -1,23 +1,19 @@
+from functools import partial
+
+from insanic.log import error_logger, logger
+
 from . import config
+from .listeners import after_server_start_verify_sns, \
+    after_server_start_verify_sqs, before_server_stop_stop_polling
 from .sns import SNSClient
 from .sqs import SQSClient
 
-from insanic.log import error_logger
 
 class Iniesta:
 
     @classmethod
     def load_config(cls, settings_object):
-        #
-        # for c in dir(config):
-        #     if c.isupper():
-        #         conf = getattr(config, c)
-        #         if c == "INIESTA_CACHE":
-        #             app.config.INSANIC_CACHES.update(conf)
-        #         elif not hasattr(app.config, c):
-        #             setattr(app.config, c, conf)
-        #
-        #
+
         for c in dir(config):
             if c.isupper():
                 conf = getattr(config, c)
@@ -27,44 +23,71 @@ class Iniesta:
                     setattr(settings_object, c, conf)
 
     @classmethod
-    def attach_listeners(cls, app, *, sns_endpoint_url=None, sqs_endpoint_url=None):
-
-        @app.listener('after_server_start')
-        async def after_server_start_poll_sqs_for_messages(app, loop=None, **kwargs):
-
-            environment = app.config.MMT_ENV
-            service_name = app.config.SERVICE_NAME
-
-            if app.config.INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN is None:
-                error_logger.critical("[INIESTA] INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN is not set!")
-                raise EnvironmentError("INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN not set in settings!")
-
-            app.xavi = await SNSClient.initialize(
-                topic_arn=app.config.INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN,
-                endpoint_url=sns_endpoint_url
-            )
-
-            app.messi = await SQSClient.initialize(
-                queue_name=app.config.INIESTA_SQS_QUEUE_NAME_TEMPLATE.format(
-                    env=environment, service_name=service_name
-                ),
-                endpoint_url=sqs_endpoint_url
-            )
-
-            await app.messi.confirm_subscription(app.xavi)
-            await app.messi.confirm_permission(app.xavi)
-
-            app.messi.start_receiving_messages()
-
-        @app.listener('before_server_stop')
-        async def before_server_stop_stop_polling(app, loop=None, **kwargs):
-            await app.messi.stop_receiving_messages()
+    def check_prerequisites(cls, app):
+        if app.config.INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN is None:
+            error_logger.critical("[INIESTA] INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN is not set!")
+            raise EnvironmentError("INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN not set in settings!")
 
     @classmethod
-    def init_app(cls, app, *, sns_endpoint_url=None, sqs_endpoint_url=None):
+    def attach_listeners_for_producer(cls, app, *, sns_endpoint_url=None):
 
+        after_server_start_event = partial(after_server_start_verify_sns, sns_endpoint_url=sns_endpoint_url)
+
+        app.register_listener(after_server_start_event, 'after_server_start')
+
+    @classmethod
+    def attach_listeners_for_consumers(cls, app, *, sqs_endpoint_url=None,
+                                       sns_endpoint_url=None):
+
+        if len(app.config.INIESTA_SQS_CONSUMER_FILTERS) == 0:
+            logger.debug('[INIESTA] Skipping attaching because no filters are defined.')
+            return
+
+        after_server_start_event = partial(after_server_start_verify_sqs,
+                                           sns_endpoint_url=sns_endpoint_url,
+                                           sqs_endpoint_url=sqs_endpoint_url)
+
+        app.register_listener(after_server_start_event, 'after_server_start')
+        app.register_listener(before_server_stop_stop_polling, 'before_server_stop')
+
+    # @classmethod
+    # def init_app(cls, app, *, sns_endpoint_url=None, sqs_endpoint_url=None):
+    #     """
+    #     for initializing app
+    #
+    #     :param app: insanic application instaance
+    #     :param sns_endpoint_url: mainly used for testing
+    #     :param sqs_endpoint_url: mainly used for testing
+    #     :return:
+    #     """
+    #     cls.check_prerequisites(app)
+    #     cls.load_config(app.config)
+    #     cls.attach_listeners_for_producer(app,
+    #                                       sns_endpoint_url=sns_endpoint_url)
+    #     cls.attach_listeners_for_consumers(app,
+    #                                        sqs_endpoint_url=sqs_endpoint_url)
+
+    @classmethod
+    def init_producer(cls, app, *, sns_endpoint_url=None):
+        cls.check_prerequisites(app)
         cls.load_config(app.config)
-        # cls.initialize_clients(app)
-        cls.attach_listeners(app,
-                             sns_endpoint_url=sns_endpoint_url,
-                             sqs_endpoint_url=sqs_endpoint_url)
+        cls.attach_listeners_for_producer(app, sns_endpoint_url=sns_endpoint_url)
+
+
+    # @classmethod
+    # def init_consumer(cls, app, *, sqs_endpoint_url=None):
+    #     cls.check_prerequisites(app)
+    #     cls.load_config(app.config)
+    #
+    #     cls.attach_listeners_for_consumers(app,
+    #                                        sqs_endpoint_url=sqs_endpoint_url)
+
+    @classmethod
+    def init_event_polling(cls, app, *, sqs_endpoint_url=None):
+        cls.check_prerequisites(app)
+        cls.load_config(app.config)
+        cls.init_consumer(app, sqs_endpoint_url=sqs_endpoint_url)
+
+    @classmethod
+    def init_queue_polling(cls, app, *, sqs_endpoint_url=None):
+        cls.init_consumer(app, sqs_endpoint_url=sqs_endpoint_url)

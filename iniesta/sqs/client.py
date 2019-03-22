@@ -74,7 +74,9 @@ class SQSClient:
 
         return sqs_client
 
-    async def confirm_subscription(self, sns_client):
+    async def confirm_subscription(self, topic_arn, *, sns_endpoint_url=None):
+
+        sns_client = SNSClient(topic_arn, sns_endpoint_url)
 
         async for subs in sns_client.list_subscriptions_by_topic():
             if self.queue_name in subs.get('Endpoint', "").split(":"):
@@ -91,7 +93,7 @@ class SQSClient:
         assert subscription_attributes['Attributes'].get('FilterPolicy', {}) \
                == json.dumps(self.filters)
 
-    async def confirm_permission(self, sns_client):
+    async def confirm_permission(self, topic_arn):
         session = BotoSession.get_session()
 
         async with session.create_client('sqs', endpoint_url=self.endpoint_url) as client:
@@ -106,7 +108,7 @@ class SQSClient:
         # need "Effect": "Allow", "Action": "SQS:SendMessage"
         assert statement['Effect'] == "Allow"
         assert statement['Action'] == "SQS:SendMessage"
-        assert statement['Condition']['ArnEquals']['aws:SourceArn'] == sns_client.topic_arn
+        assert statement['Condition']['ArnEquals']['aws:SourceArn'] == topic_arn
 
     @property
     def filters(self):

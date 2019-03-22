@@ -16,8 +16,6 @@ class InitializeFixtures:
 
     @pytest.fixture
     def insanic_server(self, loop, insanic_application, test_server, monkeypatch):
-        monkeypatch.setattr(settings, 'GRPC_PORT_DELTA', 1)
-
         return loop.run_until_complete(test_server(insanic_application))
 
 
@@ -28,15 +26,17 @@ class TestIniestaInitialize(InitializeFixtures):
 
         # test for after server start listener
         for f in insanic_application.listeners['after_server_start']:
-            if  f.__module__ == "iniesta.app":
-                assert f.__name__ == 'after_server_start_poll_sqs_for_messages'
-                break
-        else:
-            raise AssertionError("after_server_start listener not found")
+
+            if hasattr(f, 'func'):
+                f = f.func
+
+            if  f.__module__ == "iniesta.listeners":
+                assert f.__name__ == 'after_server_start_verify_sns'
+
 
         # test for before server stop listener
         for f in insanic_application.listeners['before_server_stop']:
-            if f.__module__ == "iniesta.app":
+            if f.__module__ == "iniesta.listeners":
                 assert f.__name__ == 'before_server_stop_stop_polling'
                 break
         else:
@@ -46,8 +46,6 @@ class TestIniestaInitialize(InitializeFixtures):
         for c in dir(config):
             if c.isupper():
                 assert hasattr(settings, c)
-
-
 
     async def test_insanic_run_sns_not_set(self, insanic_application, test_server):
         with pytest.raises(EnvironmentError) as exc_info:

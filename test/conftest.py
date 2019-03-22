@@ -11,7 +11,8 @@ settings.configure(SERVICE_NAME="iniesta",
                    GATEWAY_REGISTRATION_ENABLED=False,
                    MMT_ENV="test",
                    TRACING_ENABLED=False,
-                   GRPC_SERVE=False)
+                   GRPC_SERVE=False,
+                   INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN="")
 
 
 @pytest.fixture(autouse=True)
@@ -19,8 +20,6 @@ def initialize_application():
     app = Insanic("iniesta")
     Iniesta.init_app(app)
     yield app
-
-
 
 @pytest.fixture(scope="session")
 def session_id():

@@ -35,6 +35,10 @@ Features
 * Filters for subscribing SQS to SNS
 * Polling for SQS and receiving messages
 * Decorator for consuming messages with defined parameters
+* Locks for idempotent message handling.
+* Checks for if proper subscribing has been setup
+* Checks for if proper permissions has been setup
+
 
 Installation
 ============
@@ -50,8 +54,38 @@ To install:
 
     pip install iniesta
 
+To setup, we need a couple settings.
+
+- `INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN`: (string) default:None The global sns arn.
+- `INIESTA_SQS_CONSUMER_FILTERS`: (list) default:[] A list of filters for the message events your service will want to receive.
+- `INIESTA_SNS_EVENT_KEY`: (string) default:iniesta_pass The key the event will be published under. Will NOT want to change this.
+- `INIESTA_LOCK_RETRY_COUNT`: (int) default:1 Lock retry count when lock is unable to be required
+- `INIESTA_LOCK_TIMEOUT`: (int) default:10s Timeout for the lock when received
+
+
 Usage
 =====
+
+For Producing
+#############
+
+For producing basic SNS messages:
+
+.. code-block:: python
+
+    # in producing service named "producer"
+    from iniesta.sns import SNSClient
+
+    sns = SNSClient(topic_arn)
+    sns.publish_event(event="EventHappened", message={"id": 1},
+                      version=1)
+
+This will publish a message to SNS with the event specified in the parameters.
+The published event will be `{event}.{service_name}`. Even if you don't send the service_name,
+it will automatically be appended.
+
+For Consuming
+#############
 
 Initial setup for polling SQS:
 
@@ -63,16 +97,6 @@ Initial setup for polling SQS:
     app = Insanic('service')
     Iniesta.init_app(app)
 
-For producing basic SNS messages:
-
-.. code-block:: python
-
-    # in producing service named "producer"
-    from iniesta.sns import SNSClient
-
-    sns = SNSClient(topic_arn)
-    sns.public_event(event="EventHappened", message={"id": 1},
-                     version=1)
 
 For creating a handler for a message:
 

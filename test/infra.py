@@ -42,9 +42,6 @@ class InfraBase:
             yield None
 
 
-
-
-
 class SNSInfra(InfraBase):
 
     queue_name = 'iniesta-test-test'
