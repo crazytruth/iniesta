@@ -70,7 +70,7 @@ For producing basic SNS messages:
     # in producing service named "producer"
     from iniesta.sns import SNSClient
 
-    sns = SNSClient.initialize(topic_arn)
+    sns = SNSClient(topic_arn)
     sns.public_event(event="EventHappened", message={"id": 1},
                      version=1)
 
