@@ -18,7 +18,7 @@ class InfraBase:
 
     @pytest.fixture(autouse=True)
     def set_service_name(self, monkeypatch):
-        monkeypatch.setattr(settings, 'SERVICE_NAME', 'insanic')
+        monkeypatch.setattr(settings, 'SERVICE_NAME', 'xavi')
 
     @pytest.fixture(scope='module')
     def sns_endpoint_url(self, start_local_aws):
@@ -42,20 +42,21 @@ class InfraBase:
             yield None
 
 
-    @pytest.fixture(autouse=True)
-    def reset_boto_session(self):
-        BotoSession.session = None
-        yield
-        BotoSession.session = None
+
 
 
 class SNSInfra(InfraBase):
 
-    @property
-    def filter_policy(self):
+    queue_name = 'iniesta-test-test'
+
+    @pytest.fixture()
+    def filter_policy(self, monkeypatch):
+        monkeypatch.setattr(settings, "INIESTA_SQS_CONSUMER_FILTERS", ['hello.iniesta', "Request.*"])
+
         return {
-            config.SNS_DOMAIN_EVENT_KEY: ["hello", {"prefix": "Request"}]
+            settings.INIESTA_SNS_EVENT_KEY: ["hello.iniesta", {"prefix": "Request."}]
         }
+
 
     @pytest.fixture(scope="module")
     def create_global_sns(self, start_local_aws, sns_endpoint_url):
@@ -70,8 +71,8 @@ class SNSInfra(InfraBase):
     def create_service_sqs(self, start_local_aws, sqs_endpoint_url, session_id):
         sqs = boto3.client('sqs', endpoint_url=sqs_endpoint_url)
 
-        # template for queue name is `mmt-{environment}-{service_name}
-        response = sqs.create_queue(QueueName='mmt-test-test')
+        # template for queue name is `iniesta-{environment}-{service_name}
+        response = sqs.create_queue(QueueName=self.queue_name)
 
         queue_attributes = sqs.get_queue_attributes(
             QueueUrl=response['QueueUrl'],
@@ -85,14 +86,15 @@ class SNSInfra(InfraBase):
         sqs.delete_queue(QueueUrl=response['QueueUrl'])
 
     @pytest.fixture(scope='function')
-    def create_sqs_subscription(self, start_local_aws, create_global_sns, create_service_sqs, sns_endpoint_url):
+    def create_sqs_subscription(self, start_local_aws, create_global_sns,
+                                create_service_sqs, sns_endpoint_url, filter_policy):
         sns = boto3.client('sns', endpoint_url=sns_endpoint_url)
 
         response = sns.subscribe(TopicArn=create_global_sns['TopicArn'],
                                  Protocol='sqs',
                                  Endpoint=create_service_sqs['Attributes']['QueueArn'],
                                  Attributes={
-                                     "FilterPolicy": json.dumps(self.filter_policy),
+                                     "FilterPolicy": json.dumps(filter_policy),
                                      "RawMessageDelivery": "true"
                                  })
         yield response
@@ -102,13 +104,13 @@ class SNSInfra(InfraBase):
 
 class SQSInfra(InfraBase):
 
-    queue_name = 'mmt-test-test'
+    queue_name = 'iniesta-test-test'
 
     @pytest.fixture(scope='module')
     def create_service_sqs(self, start_local_aws, sqs_endpoint_url, session_id):
         sqs = boto3.client('sqs', endpoint_url=sqs_endpoint_url)
 
-        # template for queue name is `mmt-{environment}-{service_name}
+        # template for queue name is `iniesta-{environment}-{service_name}
         while True:
             try:
                 response = sqs.create_queue(QueueName=self.queue_name)
@@ -142,7 +144,7 @@ class SQSInfra(InfraBase):
                 "Policy": json.dumps(
                     {
                         "Version": "2012-10-17",
-                        "Id": "arn:aws:sqs:ap-northeast-1:120387605022:mmt-test-test/SQSDefaultPolicy",
+                        "Id": "arn:aws:sqs:ap-northeast-1:120387605022:iniesta-test-test/SQSDefaultPolicy",
                         "Statement": [
                             {
                                 "Sid": "Sid1552456721343",

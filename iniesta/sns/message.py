@@ -14,6 +14,13 @@ class SNSMessage(UserDict):
         self['MessageAttributes'] = {}
 
     @property
+    def event(self):
+        try:
+            return self.message_attributes[settings.INIESTA_SNS_EVENT_KEY]['StringValue']
+        except KeyError:
+            return None
+
+    @property
     def message(self):
         return self['Message']
 
@@ -56,7 +63,7 @@ class SNSMessage(UserDict):
         if not value.endswith(f".{settings.SERVICE_NAME}"):
             value = ".".join([value, settings.SERVICE_NAME])
 
-        self.add_string_attribute(settings.SNS_DOMAIN_EVENT_KEY, value)
+        self.add_string_attribute(settings.INIESTA_SNS_EVENT_KEY, value)
 
     def add_attribute(self, attribute_name, attribute_value):
         if isinstance(attribute_value, str):

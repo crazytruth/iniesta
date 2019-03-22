@@ -4,7 +4,10 @@ import pytest
 import ujson as json
 import uuid
 
+from insanic.conf import settings
+
 from iniesta.exceptions import StopPolling
+from iniesta import Iniesta
 from iniesta.sns import SNSClient
 from iniesta.sqs import SQSClient
 
@@ -38,9 +41,10 @@ class TestSNSSQSIntegration(SQSInfra, SNSInfra):
         )
 
     @pytest.fixture(scope='function')
-    async def sqs_client(self, sqs_endpoint_url):
+    async def sqs_client(self, sqs_endpoint_url, sns_client):
         client = await SQSClient.initialize(
-            queue_name=self.queue_name, endpoint_url=sqs_endpoint_url
+            queue_name=self.queue_name,
+            endpoint_url=sqs_endpoint_url
         )
         yield client
 
@@ -50,7 +54,7 @@ class TestSNSSQSIntegration(SQSInfra, SNSInfra):
                                add_permissions, sns_client, sqs_client, loop):
 
         some_id = uuid.uuid4().hex
-        event = "RequestTestEvent1.insanic"
+        event = "Request.xavi"
         received_messages = []
 
         @SQSClient.handler(event)
@@ -61,7 +65,7 @@ class TestSNSSQSIntegration(SQSInfra, SNSInfra):
             return True
 
         try:
-            response = await sns_client.publish_event(event="RequestTestEvent1", message=json.dumps({"id": some_id}),
+            response = await sns_client.publish_event(event="Request", message=json.dumps({"id": some_id}),
                                                       round="one")
         except Exception as e:
             raise
@@ -82,7 +86,7 @@ class TestSNSSQSIntegration(SQSInfra, SNSInfra):
                            sqs_client, sns_client, add_permissions):
         received_messages = []
 
-        @SQSClient.handler("RequestTestEvent1.insanic")
+        @SQSClient.handler("RequestTestEvent1.iniesta")
         async def handler(message, *args, **kwargs):
             assert message.body['id'] == some_id
             received_messages.append(message)
@@ -126,7 +130,7 @@ class TestSNSSQSIntegration(SQSInfra, SNSInfra):
 
         received_messages = []
 
-        @SQSClient.handler(f"RequestTestEvent1.insanic")
+        @SQSClient.handler(f"Request.xavi")
         async def handler(message, *args, **kwargs):
             received_messages.append(message)
             return True
@@ -135,7 +139,7 @@ class TestSNSSQSIntegration(SQSInfra, SNSInfra):
         for i in range(10):
             publish_tasks.append(asyncio.ensure_future(
                 sns_client.publish_event(
-                    event="RequestTestEvent1",
+                    event="Request",
                     message=json.dumps({"id": i}),
                     round=i
                 )))
@@ -149,3 +153,8 @@ class TestSNSSQSIntegration(SQSInfra, SNSInfra):
 
 
         await sqs_client.lock_manager.destroy()
+
+    async def test_confirm_permissions(self, start_local_aws, create_sqs_subscription,
+                                       add_permissions, sqs_client, sns_client):
+        await sqs_client.confirm_permission(sns_client)
+

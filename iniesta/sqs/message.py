@@ -27,7 +27,7 @@ class SQSMessage:
 
     @property
     def event(self):
-        return self.message_attributes[settings.SNS_DOMAIN_EVENT_KEY]
+        return self.message_attributes[settings.INIESTA_SNS_EVENT_KEY]
 
     def checksum_body(self):
         return hashlib.md5(self.raw_body.encode('utf-8')).hexdigest() == self.md5_of_body
@@ -36,7 +36,6 @@ class SQSMessage:
     def _unpack_message_attributes(message_attributes):
 
         _message_attributes = {}
-
 
         for attribute, attribute_value in message_attributes.items():
             data_type = attribute_value['DataType'].split('.', 1)[0]

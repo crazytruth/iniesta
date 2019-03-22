@@ -3,43 +3,54 @@ import botocore.exceptions
 from iniesta.sessions import BotoSession
 from iniesta.sns import SNSMessage
 
-from insanic.log import error_logger
+from insanic.log import error_logger, logger
 
 
 class SNSClient:
 
-    is_unavailable = None
-
     def __init__(self, topic_arn, endpoint_url=None):
+        """
+        initialize client with topic arn and endpoint url
 
+        :param topic_arn:
+        :param endpoint_url:
+        """
         self.topic_arn = topic_arn
         self.endpoint_url = endpoint_url
 
     @classmethod
-    async def initialize(cls, *, topic_arn, endpoint_url=None, loop=None):
+    async def initialize(cls, *, topic_arn, endpoint_url=None):
         """
-        Class method to initialize the SNS Client. We needed to do this
-        because of asyncio functionality
+        Class method to initialize the SNS Client and confirm the topic exists.
+        We needed to do this because of asyncio functionality
 
+        :param topic_arn:
+        :param endpoint_url:
+        :param loop:
+        :return:
+        """
+
+        try:
+            await cls._confirm_topic(topic_arn, endpoint_url)
+        except botocore.exceptions.ClientError as e:
+            error_message = f"[{e.response['Error']['Code']}]: {e.response['Error']['Message']} {topic_arn}"
+            error_logger.critical(error_message)
+            raise
+
+        return cls(topic_arn, endpoint_url)
+
+    @classmethod
+    async def _confirm_topic(cls, topic_arn, endpoint_url=None):
+        """
+        Confirm that the topic exists
         :param topic_arn:
         :param endpoint_url:
         :return:
         """
-        session = BotoSession.get_session(loop)
+        session = BotoSession.get_session()
 
-        try:
-            async with session.create_client('sns', endpoint_url=endpoint_url) as client:
-                await client.get_topic_attributes(TopicArn=topic_arn)
-        except botocore.exceptions.ClientError as e:
-            error_message = f"[{e.response['Error']['Code']}]: {e.response['Error']['Message']} {topic_arn}"
-            error_logger.critical(error_message)
-            cls.is_unavailable = error_message
-        else:
-            cls.is_unavailable = None
-        finally:
-            sns_client = cls(topic_arn, endpoint_url)
-
-        return sns_client
+        async with session.create_client('sns', endpoint_url=endpoint_url) as client:
+            await client.get_topic_attributes(TopicArn=topic_arn)
 
     async def _list_subscriptions_by_topic(self, next_token=None):
         session = BotoSession.get_session()
@@ -91,14 +102,14 @@ class SNSClient:
         :param message_attributes: attributes to send in aiobotocore sns publish api
         :return:
         """
-        if self.is_unavailable is not None:
-            error_logger.critical(f"Unable to publish to {self.topic_arn} because: {self.is_unavailable}")
-            return
 
         session = BotoSession.get_session()
         try:
             async with session.create_client('sns', endpoint_url=self.endpoint_url) as client:
                 message = await client.publish(TopicArn=self.topic_arn, **message_attributes)
+
+                logger.debug(f"[INIESTA] Published ({message_attributes.event}) with "
+                             f"the following attributes: {message_attributes}")
                 return message
 
         except botocore.exceptions.ClientError as e:

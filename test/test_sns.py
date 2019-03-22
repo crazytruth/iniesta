@@ -1,3 +1,4 @@
+import botocore
 import pytest
 import ujson as json
 
@@ -21,8 +22,8 @@ class TestSNSMessage:
         message = SNSMessage()
         message.add_event("Awesome!")
 
-        assert settings.SNS_DOMAIN_EVENT_KEY in message.message_attributes
-        assert message.message_attributes[settings.SNS_DOMAIN_EVENT_KEY]['StringValue'] == "Awesome!.iniesta"
+        assert settings.INIESTA_SNS_EVENT_KEY in message.message_attributes
+        assert message.message_attributes[settings.INIESTA_SNS_EVENT_KEY]['StringValue'] == "Awesome!.iniesta"
 
     @pytest.mark.parametrize("test_value", (
         "",
@@ -239,13 +240,10 @@ class TestSNSClient(SNSInfra):
 
     async def test_client_topic_doesnt_exist(self, start_local_aws, sns_endpoint_url):
 
-        client = await SNSClient.initialize(
-            topic_arn="asdasda",
-            endpoint_url=sns_endpoint_url)
-
-        assert client.is_unavailable is not None
-        assert SNSClient.is_unavailable is not None
-        assert client.is_unavailable is SNSClient.is_unavailable
+        with pytest.raises(botocore.exceptions.ClientError):
+            client = await SNSClient.initialize(
+                topic_arn="asdasda",
+                endpoint_url=sns_endpoint_url)
 
     async def test_list_subscriptions_empty(self, start_local_aws, create_global_sns, sns_endpoint_url):
 
@@ -282,9 +280,9 @@ class TestSNSClient(SNSInfra):
         {
             'Owner': '120387605022',
             'RawMessageDelivery': 'false',
-            'FilterPolicy': '{"insanic_event":["hello",{"prefix":"Request"}]}',
+            'FilterPolicy': '{"iniesta_pass":["hello",{"prefix":"Request"}]}',
             'TopicArn': 'arn:aws:sns:ap-northeast-1:120387605022:test-test-global',
-            'Endpoint': 'arn:aws:sqs:ap-northeast-1:120387605022:mmt-test-test',
+            'Endpoint': 'arn:aws:sqs:ap-northeast-1:120387605022:iniesta-test-test',
             'Protocol': 'sqs',
             'PendingConfirmation': 'false', 'ConfirmationWasAuthenticated': 'true',
             'SubscriptionArn': 'arn:aws:sns:ap-northeast-1:120387605022:test-test-global:cd591f81-c223-4cf8-828d-6fbbce3f66f3'

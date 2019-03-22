@@ -1,8 +1,10 @@
 import asyncio
 import boto3
+import botocore
 import pytest
 import ujson as json
 
+from insanic.conf import settings
 from iniesta.sqs import SQSClient
 
 from .infra import SQSInfra
@@ -14,6 +16,7 @@ class TestSQSClient(SQSInfra):
     def reset_sqs_client(self):
         yield
         SQSClient.handlers = {}
+        SQSClient.queue_urls = {}
 
 
     @pytest.fixture
@@ -26,7 +29,7 @@ class TestSQSClient(SQSInfra):
                 QueueUrl=create_service_sqs['QueueUrl'],
                 MessageBody=json.dumps({"message_number": i}),
                 MessageAttributes={
-                    "insanic_event": {
+                    settings.INIESTA_SNS_EVENT_KEY: {
                         "DataType": "String",
                         "StringValue": "test_event"
                     }
@@ -36,14 +39,15 @@ class TestSQSClient(SQSInfra):
         return messages
 
     async def test_sqs_client_initialize_queue_does_not_exist(self, start_local_aws, sqs_endpoint_url):
-        client = await SQSClient.initialize(queue_name='asdasdasda', endpoint_url=sqs_endpoint_url)
-        assert client.is_unavailable is not None
-
+        with pytest.raises(botocore.exceptions.ClientError, match="") as exc_info:
+            client = await SQSClient.initialize(queue_name='asdasdasda',
+                                                endpoint_url=sqs_endpoint_url)
 
     async def test_sqs_client(self, start_local_aws, create_service_sqs, sqs_endpoint_url):
-        client = await SQSClient.initialize(queue_name=self.queue_name, endpoint_url=sqs_endpoint_url)
+        client = await SQSClient.initialize(queue_name=self.queue_name,
+                                            endpoint_url=sqs_endpoint_url)
 
-        assert client.is_unavailable is None
+        assert self.queue_name in client.queue_urls[self.queue_name]
         assert client.queue_url == create_service_sqs['QueueUrl']
 
     async def test_sqs_handler(self):
@@ -66,11 +70,11 @@ class TestSQSClient(SQSInfra):
 
             return message, message_number
 
-        async def mock_hook_post_message_hander(self):
+        async def mock_hook_post_message_handler(self):
 
             await self.stop_receiving_messages()
 
-        monkeypatch.setattr(SQSClient, 'hook_post_receive_message_handler', mock_hook_post_message_hander)
+        monkeypatch.setattr(SQSClient, 'hook_post_receive_message_handler', mock_hook_post_message_handler)
         monkeypatch.setattr(SQSClient, 'handle_message', mock_handle_message)
 
         client = await SQSClient.initialize(queue_name=self.queue_name, endpoint_url=sqs_endpoint_url)
@@ -106,7 +110,8 @@ class TestSQSClient(SQSInfra):
         monkeypatch.setattr(SQSClient, 'hook_post_receive_message_handler', mock_hook_post_message_handler)
         monkeypatch.setattr(SQSClient, 'handle_message', mock_handle_message)
 
-        client = await SQSClient.initialize(queue_name=self.queue_name, endpoint_url=sqs_endpoint_url)
+        client = await SQSClient.initialize(queue_name=self.queue_name,
+                                            endpoint_url=sqs_endpoint_url)
         client.start_receiving_messages()
 
         await client._polling_task
@@ -193,7 +198,7 @@ class TestSQSClient(SQSInfra):
             },
             'MD5OfMessageAttributes': 'c45f9191837250ab2cc208d5f0362290',
             'MessageAttributes': {
-                'insanic_event': {
+                'iniesta_pass': {
                     'StringValue': 'test_event',
                     'DataType': 'String'
                 }
@@ -242,7 +247,8 @@ class TestSQSClient(SQSInfra):
 
             return "mess"
 
-        client = await SQSClient.initialize(queue_name=self.queue_name, endpoint_url=sqs_endpoint_url)
+        client = await SQSClient.initialize(queue_name=self.queue_name,
+                                            endpoint_url=sqs_endpoint_url)
 
         client.start_receiving_messages()
 
