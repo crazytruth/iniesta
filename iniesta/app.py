@@ -73,21 +73,34 @@ class Iniesta:
         cls.load_config(app.config)
         cls.attach_listeners_for_producer(app, sns_endpoint_url=sns_endpoint_url)
 
+    @classmethod
+    def init_queue_polling(cls, app, *, sqs_endpoint_url=None):
+        """
+        Basic sqs queue polling without the need for checking subscriptions
+        dont need to check prerequisites?
+        load configs
+        attach listeners to check if queue exists
 
-    # @classmethod
-    # def init_consumer(cls, app, *, sqs_endpoint_url=None):
-    #     cls.check_prerequisites(app)
-    #     cls.load_config(app.config)
-    #
-    #     cls.attach_listeners_for_consumers(app,
-    #                                        sqs_endpoint_url=sqs_endpoint_url)
+        :param app:
+        :param sqs_endpoint_url:
+        :return:
+        """
+
+        cls.load_config(app.config)
+        cls.attach_listeners_for_consumers(app, sqs_endpoint_url=sqs_endpoint_url)
 
     @classmethod
     def init_event_polling(cls, app, *, sqs_endpoint_url=None):
+
+
+        # check prerequistives?
+        # need to check if filters are 0 to avoid receiving all messages
+        # load configs
+        # check if queue exists
+        # check subscriptions
+        # check permissions
         cls.check_prerequisites(app)
-        cls.load_config(app.config)
+
         cls.init_consumer(app, sqs_endpoint_url=sqs_endpoint_url)
 
-    @classmethod
-    def init_queue_polling(cls, app, *, sqs_endpoint_url=None):
-        cls.init_consumer(app, sqs_endpoint_url=sqs_endpoint_url)
+
