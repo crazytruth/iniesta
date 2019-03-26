@@ -3,7 +3,7 @@ import botocore.exceptions
 import ujson as json
 
 from aioredlock import Aioredlock, LockError
-from inspect import signature, isawaitable
+from inspect import signature, isawaitable, isfunction
 from insanic.conf import settings
 from insanic.log import logger, error_logger
 
@@ -14,6 +14,7 @@ from iniesta.sns import SNSClient
 from .message import SQSMessage
 
 
+default = object()
 
 
 class SQSClient:
@@ -157,7 +158,14 @@ class SQSClient:
             if not lock.valid:
                 raise LockError(f"Could not acquire lock for {message.message_id}")
 
-            handler = self.handlers[message.event]
+
+            if message.event in self.handlers:
+                handler = self.handlers[message.event]
+            elif default in self.handlers:
+                handler = self.handlers[default]
+            else:
+                raise KeyError(f"{message.event} handler not found!")
+
         except Exception as e:
             e.message = message
             e.handler = None
@@ -259,12 +267,18 @@ class SQSClient:
         return "Shutdown"
 
     @classmethod
-    def handler(cls, event):
-        def register_handler(func):
-            cls.add_handler(func, event)
-            return func
+    def handler(cls, arg=None):
 
-        return register_handler
+        if arg and isfunction(arg):
+            cls.add_handler(arg, default)
+            return arg
+        else:
+            def register_handler(func):
+                cls.add_handler(func, arg)
+                return func
+
+            return register_handler
+
 
     @classmethod
     def add_handler(cls, handler, event):
@@ -276,7 +290,7 @@ class SQSClient:
             cls.handlers.update({event: handler})
         else:
             raise ValueError(
-                "Required parameter `request` missing "
+                "Required parameter `message` missing "
                 "in the {0}() route?".format(handler.__name__)
             )
 

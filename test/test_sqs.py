@@ -6,6 +6,7 @@ import ujson as json
 
 from insanic.conf import settings
 from iniesta.sqs import SQSClient
+from iniesta.sqs.client import default
 
 from .infra import SQSInfra
 
@@ -50,7 +51,7 @@ class TestSQSClient(SQSInfra):
         assert self.queue_name in client.queue_urls[self.queue_name]
         assert client.queue_url == create_service_sqs['QueueUrl']
 
-    async def test_sqs_handler(self):
+    async def test_sqs_handler_function(self):
 
         @SQSClient.handler("something")
         def handler(*args, **kwargs):
@@ -121,65 +122,8 @@ class TestSQSClient(SQSInfra):
 
         await client.lock_manager.destroy()
 
-    def test_handler_register(self):
-        event = "SomethingHappened.test"
 
-        @SQSClient.handler(event)
-        def handler_for_test_event(*args, **kwargs):
 
-            return "test event"
-
-        assert event in SQSClient.handlers
-        assert SQSClient.handlers[event] == handler_for_test_event
-
-    async def test_async_handler_register(self):
-        event = "SomethingAsyncHappened.test"
-
-        @SQSClient.handler(event)
-        async def handler_for_test_event(*args, **kwargs):
-
-            return "test event"
-
-        assert event in SQSClient.handlers
-        assert SQSClient.handlers[event] == handler_for_test_event
-
-    def test_handler_duplicates(self):
-        event = "DoubleHandlerRegistration"
-
-        @SQSClient.handler(event)
-        def handler_one(*args, **kwargs):
-            return "one"
-
-        assert event in SQSClient.handlers
-
-        with pytest.raises(ValueError):
-            @SQSClient.handler(event)
-            def handler_two(*args, **kwargs):
-                return "two"
-
-    def test_class_handler(self):
-        event = "ClassHandler"
-
-        class SomeHandler:
-
-            @SQSClient.handler(event)
-            def handler(self, *args, **kwargs):
-                return "class"
-
-        assert event in SQSClient.handlers
-        assert SQSClient.handlers[event] == SomeHandler.handler
-
-    def test_class_async_handler(self):
-        event = "ClassHandler"
-
-        class SomeHandler:
-
-            @SQSClient.handler(event)
-            async def handler(self, *args, **kwargs):
-                return "class"
-
-        assert event in SQSClient.handlers
-        assert SQSClient.handlers[event] == SomeHandler.handler
 
     async def test_handle_message(self, start_local_aws, create_service_sqs, sqs_endpoint_url,
                                   queue_messages, monkeypatch):
@@ -276,3 +220,112 @@ class TestSQSClient(SQSInfra):
                 assert "Can not acquire the lock" in log.msg
 
         await client.lock_manager.destroy()
+
+
+class TestSQSHandlerRegistration:
+
+    @pytest.fixture(autouse=True)
+    def reset_sqs_client(self):
+        yield
+        SQSClient.handlers = {}
+        SQSClient.queue_urls = {}
+
+    def test_sync_function(self):
+        event = "SomethingHappened.test"
+
+        @SQSClient.handler(event)
+        def handler_for_test_event(*args, **kwargs):
+            return "test event"
+
+        assert event in SQSClient.handlers
+        assert SQSClient.handlers[event] == handler_for_test_event
+
+    def test_async_function(self):
+        event = "SomethingAsyncHappened.test"
+
+        @SQSClient.handler(event)
+        async def handler_for_test_event(*args, **kwargs):
+
+            return "test event"
+
+        assert event in SQSClient.handlers
+        assert SQSClient.handlers[event] == handler_for_test_event
+
+    def test_sync_class_method(self):
+        event = "ClassHandler"
+
+        class SomeHandler:
+
+            @SQSClient.handler(event)
+            def handler(self, *args, **kwargs):
+                return "class"
+
+        assert event in SQSClient.handlers
+        assert SQSClient.handlers[event] == SomeHandler.handler
+
+    def test_async_class_method(self):
+        event = "ClassHandler"
+
+        class SomeHandler:
+
+            @SQSClient.handler(event)
+            async def handler(self, *args, **kwargs):
+                return "class"
+
+        assert event in SQSClient.handlers
+        assert SQSClient.handlers[event] == SomeHandler.handler
+
+    def test_sync_class_method_default_handler(self):
+
+        class SomeHandler:
+
+            @SQSClient.handler
+            def handler(self, *args, **kwargs):
+                return "class"
+
+        assert default in SQSClient.handlers
+        assert SQSClient.handlers[default] == SomeHandler.handler
+
+    def test_async_class_method_default_handler(self):
+
+        class SomeHandler:
+
+            @SQSClient.handler
+            async def handler(self, *args, **kwargs):
+                return "class"
+
+        assert default in SQSClient.handlers
+        assert SQSClient.handlers[default] == SomeHandler.handler
+
+    def test_sync_function_default_handler(self):
+
+        @SQSClient.handler
+        def handler(self, *args, **kwargs):
+            return "sync function"
+
+        assert default in SQSClient.handlers
+        assert SQSClient.handlers[default] == handler
+
+    def test_async_function_default_handler(self):
+
+        @SQSClient.handler
+        async def handler(self, *args, **kwargs):
+            return "async function"
+
+        assert default in SQSClient.handlers
+        assert SQSClient.handlers[default] == handler
+
+
+    def test_handler_duplicates(self):
+        event = "DoubleHandlerRegistration"
+
+        @SQSClient.handler(event)
+        def handler_one(*args, **kwargs):
+            return "one"
+
+        assert event in SQSClient.handlers
+
+        with pytest.raises(ValueError):
+            @SQSClient.handler(event)
+            def handler_two(*args, **kwargs):
+                return "two"

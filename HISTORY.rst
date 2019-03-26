@@ -6,7 +6,8 @@ History
 0.1.2 (unreleased)
 ++++++++++++++++++
 
-- Nothing changed yet.
+- FEAT: separate initialization methods for purposes
+- FEAT: allow decorating of default(fallback) handler
 
 
 0.1.1 (2019-03-22)
