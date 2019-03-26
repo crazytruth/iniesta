@@ -23,7 +23,7 @@ class TestSNSMessage:
         message.add_event("Awesome!")
 
         assert settings.INIESTA_SNS_EVENT_KEY in message.message_attributes
-        assert message.message_attributes[settings.INIESTA_SNS_EVENT_KEY]['StringValue'] == "Awesome!.iniesta"
+        assert message.message_attributes[settings.INIESTA_SNS_EVENT_KEY]['StringValue'] == "Awesome!.xavi"
 
     @pytest.mark.parametrize("test_value", (
         "",

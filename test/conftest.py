@@ -11,15 +11,34 @@ settings.configure(SERVICE_NAME="iniesta",
                    GATEWAY_REGISTRATION_ENABLED=False,
                    MMT_ENV="test",
                    TRACING_ENABLED=False,
-                   GRPC_SERVE=False,
-                   INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN="")
+                   GRPC_SERVE=False)
 
 
 @pytest.fixture(autouse=True)
-def initialize_application():
-    app = Insanic("iniesta")
-    Iniesta.init_app(app)
+def insanic_application():
+    app = Insanic("xavi")
+
     yield app
+
+@pytest.fixture
+def initialize_for_passing(insanic_application):
+    Iniesta.init_producer(insanic_application)
+    yield insanic_application
+
+@pytest.fixture
+def initialize_for_receiving_short_passes(insanic_application):
+    Iniesta.init_queue_polling(insanic_application)
+    yield insanic_application
+
+@pytest.fixture
+def initialize_for_receiving_through_passes(insanic_application):
+    Iniesta.init_event_polling(insanic_application)
+    yield insanic_application
+
+@pytest.fixture
+def initialize_for_passing_and_receiving(insanic_application):
+    Iniesta.init_app(insanic_application)
+    yield insanic_application
 
 @pytest.fixture(scope="session")
 def session_id():
@@ -39,3 +58,9 @@ def reset_boto_session():
     BotoSession.session = None
     yield
     BotoSession.session = None
+
+@pytest.fixture(autouse=True)
+def reset_iniesta():
+    yield
+    Iniesta.initialized = False
+    Iniesta.config_imported = False

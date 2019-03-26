@@ -67,9 +67,23 @@ Usage
 =====
 
 For Producing
-#############
+*************
 
-For producing basic SNS messages:
+For services that only need to produce SNS messages:
+
+.. code-block:: python
+
+    # in producing service named "producer"
+    from insanic import Insanic
+    from iniesta import Iniesta
+
+    app = Insanic('producer')
+    Iniesta.init_producer(app)
+    # or
+    # init_producer and prepare_for_delivering_through_pass are equivalent
+    Iniesta.prepare_for_delivering_through_pass(app)
+
+To produce messages:
 
 .. code-block:: python
 
@@ -85,30 +99,77 @@ The published event will be `{event}.{service_name}`. Even if you don't send the
 it will automatically be appended.
 
 For Consuming
-#############
+*************
 
-Initial setup for polling SQS:
+For consuming, we can setup 2 different types of polling methods.
+
+1. Event Polling
+    * Check if sqs has been created
+    * Checks if global arn is set (`INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN`).
+    * Checks if filters have been defined (`INIESTA_SQS_CONSUMER_FILTERS`).
+    * Checks if subscriptions has been made with service sqs and sns.
+    * Checks if necessary permissions have been put in place.
+
+
+Initial setup for event polling:
 
 .. code-block:: python
 
+    # in service named receiver
     from insanic import Insanic
     from iniesta import Iniesta
 
-    app = Insanic('service')
-    Iniesta.init_app(app)
+    app = Insanic('receiver')
+    Iniesta.init_event_polling(app)
+    # or
+    Iniesta.prepare_for_receiving_through_pass(app)
 
 
 For creating a handler for a message:
 
 .. code-block:: python
 
-    # in consuming service named "consumer"
+    # in consuming service named "receiver"
     from iniesta.sqs import SQSClient
 
     @SQSClient.handler('EventHappened.producer')
     def event_happened_handler(message):
         # .. do some logic ..
         return True
+
+2. Queue Polling
+
+Queue polling is only for receiving messages from an SQS, and does not get messages from SNS.
+
+* Check if SQS has been created
+
+.. code-block:: python
+
+    # in service named receiver
+    from insanic import Insanic
+    from iniesta import Iniesta
+
+    app = Insanic('receiver')
+    Iniesta.init_queue_polling(app)
+    # or
+    Iniesta.prepare_for_receiving_short_pass(app)
+
+For creating a default handler:
+
+.. code-block:: python
+
+    # in service `receiver`
+    from iniesta.sqs import SQSClient
+
+    @SQSClient.handler
+    def default_handler(message):
+        # .. do some stuff ..
+        # might need to separate according to message type
+        return True
+
+
+Post Receiving Message
+**********************
 
 There are two paths for handling the message
 
@@ -119,6 +180,8 @@ There are two paths for handling the message
 2. On exception raised,
     * will NOT delete message from SQS Queue
     * message will be available again for consumption after invisibility timeout
+
+
 
 
 Development

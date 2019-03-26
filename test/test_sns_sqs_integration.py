@@ -156,5 +156,9 @@ class TestSNSSQSIntegration(SQSInfra, SNSInfra):
 
     async def test_confirm_permissions(self, start_local_aws, create_sqs_subscription,
                                        add_permissions, sqs_client, sns_client):
-        await sqs_client.confirm_permission(sns_client)
+        await sqs_client.confirm_permission(sns_client.topic_arn)
 
+
+    async def test_confirm_subscription(self, start_local_aws, create_sqs_subscription,
+                                        sqs_client, sns_client):
+        await sqs_client.confirm_subscription(sns_client.topic_arn, sns_endpoint_url=sns_client.endpoint_url)

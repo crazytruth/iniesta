@@ -6,6 +6,7 @@ from localstack.services import infra
 
 from insanic.conf import settings
 
+from iniesta import Iniesta
 from iniesta import config
 from iniesta.sessions import BotoSession
 
@@ -15,6 +16,11 @@ RUN_LOCAL = True
 class InfraBase:
 
     run_local = RUN_LOCAL
+
+    @pytest.fixture(autouse=True)
+    def load_configs(self):
+        Iniesta.load_config(settings)
+
 
     @pytest.fixture(autouse=True)
     def set_service_name(self, monkeypatch):
@@ -48,7 +54,8 @@ class SNSInfra(InfraBase):
 
     @pytest.fixture()
     def filter_policy(self, monkeypatch):
-        monkeypatch.setattr(settings, "INIESTA_SQS_CONSUMER_FILTERS", ['hello.iniesta', "Request.*"])
+        monkeypatch.setattr(settings, "INIESTA_SQS_CONSUMER_FILTERS", ['hello.iniesta', "Request.*"],
+                            raising=False)
 
         return {
             settings.INIESTA_SNS_EVENT_KEY: ["hello.iniesta", {"prefix": "Request."}]
