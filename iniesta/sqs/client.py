@@ -163,7 +163,6 @@ class SQSClient:
             if not lock.valid:
                 raise LockError(f"Could not acquire lock for {message.message_id}")
 
-
             if message.event in self.handlers:
                 handler = self.handlers[message.event]
             elif default in self.handlers:
@@ -196,7 +195,7 @@ class SQSClient:
         handler = getattr(exc, "handler", None)
 
         extra = {
-            "iniesta_pass": message.event,  # TODO: get insanic event
+            "iniesta_pass": message.event,
             "sqs_message_id": message.message_id,
             "sqs_receipt_handle": message.receipt_handle,
             "sqs_md5_of_body": message.md5_of_body,

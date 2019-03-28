@@ -125,7 +125,6 @@ class Iniesta(metaclass=_Initializer):
         :param app:
         :return:
         """
-        # TODO: need to check order of plugin vs vault
         cls.load_config(app.config)
 
         # check if global arn exists
