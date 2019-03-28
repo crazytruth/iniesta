@@ -221,15 +221,13 @@ class TestSNSClient(SNSInfra):
     async def test_client_initialize(self, start_local_aws, create_global_sns, sns_endpoint_url):
 
         client = await SNSClient.initialize(
-            topic_arn=create_global_sns['TopicArn'],
-            endpoint_url=sns_endpoint_url)
+            topic_arn=create_global_sns['TopicArn'])
         assert client.topic_arn == create_global_sns['TopicArn']
 
 
     async def test_client_publish(self, start_local_aws, create_global_sns, sns_endpoint_url):
         client = await SNSClient.initialize(
-            topic_arn=create_global_sns['TopicArn'],
-            endpoint_url=sns_endpoint_url
+            topic_arn=create_global_sns['TopicArn']
         )
 
         response = await client.publish_event(event="SomethingAwesomeHappened", message="Great Success!", value="Something")
@@ -242,14 +240,12 @@ class TestSNSClient(SNSInfra):
 
         with pytest.raises(botocore.exceptions.ClientError):
             client = await SNSClient.initialize(
-                topic_arn="asdasda",
-                endpoint_url=sns_endpoint_url)
+                topic_arn="asdasda")
 
     async def test_list_subscriptions_empty(self, start_local_aws, create_global_sns, sns_endpoint_url):
 
         client = await SNSClient.initialize(
-            topic_arn=create_global_sns['TopicArn'],
-            endpoint_url=sns_endpoint_url,
+            topic_arn=create_global_sns['TopicArn']
         )
 
         subscriptions = [s async for s in client.list_subscriptions_by_topic()]
@@ -261,8 +257,7 @@ class TestSNSClient(SNSInfra):
                                                     sns_endpoint_url):
 
         client = await SNSClient.initialize(
-            topic_arn=create_global_sns['TopicArn'],
-            endpoint_url=sns_endpoint_url
+            topic_arn=create_global_sns['TopicArn']
         )
 
         subscriptions = [s async for s in client.list_subscriptions_by_topic()]
@@ -298,8 +293,7 @@ class TestSNSClient(SNSInfra):
         """
 
         client = await SNSClient.initialize(
-            topic_arn=create_global_sns['TopicArn'],
-            endpoint_url=sns_endpoint_url
+            topic_arn=create_global_sns['TopicArn']
         )
 
         subscriptions = [s async for s in client.list_subscriptions_by_topic()]

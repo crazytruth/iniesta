@@ -7,7 +7,7 @@ from inspect import signature, isawaitable, isfunction
 from insanic.conf import settings
 from insanic.log import logger, error_logger
 
-from iniesta.exceptions import StopPolling
+from iniesta.exceptions import StopPolling, ImproperlyConfigured
 from iniesta.sessions import BotoSession
 from iniesta.sns import SNSClient
 
@@ -25,10 +25,10 @@ class SQSClient:
     handlers = {} # dict with {event: handler function}
     queue_urls = {} # dict with {queue_name: queue_url}
 
-    def __init__(self, queue_name, *, retry_count=None, lock_timeout=None, endpoint_url=None):
+    def __init__(self, queue_name, *, retry_count=None, lock_timeout=None):
         self.queue_name = queue_name
         self.queue_url = self.queue_urls[queue_name]
-        self.endpoint_url = endpoint_url
+        self.endpoint_url = settings.INIESTA_SQS_ENDPOINT_URL
         self._filters = None
 
         retry_count = retry_count or settings.INIESTA_LOCK_RETRY_COUNT
@@ -44,16 +44,16 @@ class SQSClient:
         )
 
     @classmethod
-    async def initialize(cls, *, queue_name, endpoint_url=None):
+    async def initialize(cls, *, queue_name):
         """
         the sns topic this queue is subscribed to
 
         :param sns_client:
         :param queue_name:
-        :param endpoint_url:
         :return:
         """
         session = BotoSession.get_session()
+        endpoint_url = settings.INIESTA_SQS_ENDPOINT_URL
 
         # check if queue exists
         if queue_name not in cls.queue_urls:
@@ -68,31 +68,33 @@ class SQSClient:
                 queue_url = response['QueueUrl']
                 cls.queue_urls.update({queue_name: queue_url})
 
-        sqs_client = cls(queue_name, endpoint_url=endpoint_url)
+        sqs_client = cls(queue_name)
 
         # check if subscription exists
         # await cls._confirm_subscription(sqs_client, topic_arn, endpoint_url)
 
         return sqs_client
 
-    async def confirm_subscription(self, topic_arn, *, sns_endpoint_url=None):
+    async def confirm_subscription(self, topic_arn):
 
-        sns_client = SNSClient(topic_arn, sns_endpoint_url)
-
-        async for subs in sns_client.list_subscriptions_by_topic():
+        sns_client = SNSClient(topic_arn)
+        subscriptions = sns_client.list_subscriptions_by_topic()
+        async for subs in subscriptions:
             if self.queue_name in subs.get('Endpoint', "").split(":"):
                 service_subscriptions = subs
                 break
+
         else:
             raise EnvironmentError(f"Unable to find subscription for {settings.SERVICE_NAME}")
 
-        # check if filters match specified
-        subscription_attributes = await sns_client.get_subscription_attributes(
-            subscription_arn=service_subscriptions['SubscriptionArn']
-        )
+        if settings.INIESTA_ASSERT_FILTER_POLICIES:
+            # check if filters match specified
+            subscription_attributes = await sns_client.get_subscription_attributes(
+                subscription_arn=service_subscriptions['SubscriptionArn']
+            )
 
-        assert subscription_attributes['Attributes'].get('FilterPolicy', {}) \
-               == json.dumps(self.filters)
+            assert subscription_attributes['Attributes'].get('FilterPolicy', {}) \
+                   == json.dumps(self.filters)
 
     async def confirm_permission(self, topic_arn):
         session = BotoSession.get_session()
@@ -103,8 +105,11 @@ class SQSClient:
                 AttributeNames=['Policy']
             )
 
-        policies = json.loads(policy_attributes['Attributes']['Policy'])
-        statement = policies['Statement'][0]
+        try:
+            policies = json.loads(policy_attributes['Attributes']['Policy'])
+            statement = policies['Statement'][0]
+        except KeyError:
+            raise ImproperlyConfigured('Permissions not found.')
 
         # need "Effect": "Allow", "Action": "SQS:SendMessage"
         assert statement['Effect'] == "Allow"
@@ -233,7 +238,7 @@ class SQSClient:
                 except botocore.exceptions.ClientError as e:
                     error_logger.critical(f"[INIESTA] [{e.response['Error']['Code']}]: {e.response['Error']['Message']}")
                 else:
-                    event_tasks = [asyncio.ensure_future(self.handle_message(SQSMessage(message)))
+                    event_tasks = [asyncio.ensure_future(self.handle_message(SQSMessage.from_sqs(message)))
                                    for message in response.get('Messages', [])]
 
                     for fut in asyncio.as_completed(event_tasks):
@@ -279,7 +284,6 @@ class SQSClient:
 
             return register_handler
 
-
     @classmethod
     def add_handler(cls, handler, event):
         if event in cls.handlers.keys():
@@ -296,18 +300,3 @@ class SQSClient:
 
     async def hook_post_receive_message_handler(self):
         pass
-
-    # async def send_message(self):
-
-
-
-    # async def send_message(self, message):
-    #     try:
-    #         await self.client.send_message(QueueUrl=self.queue_url, MessageBody=message)
-    #     except botocore.exceptions.ClientError as err:
-    #         if err.response['Error']['Code'] == \
-    #                 'AWS.SimpleQueueService.NonExistentQueue':
-    #             print("Queue {0} does not exist".format(QUEUE_NAME))
-    #             await self.client.close()
-    #         else:
-    #             raise

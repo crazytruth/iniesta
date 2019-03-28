@@ -3,53 +3,51 @@ import botocore.exceptions
 from iniesta.sessions import BotoSession
 from iniesta.sns import SNSMessage
 
+from insanic.conf import settings
 from insanic.log import error_logger, logger
 
 
 class SNSClient:
 
-    def __init__(self, topic_arn, endpoint_url=None):
+    def __init__(self, topic_arn):
         """
         initialize client with topic arn and endpoint url
 
         :param topic_arn:
-        :param endpoint_url:
         """
         self.topic_arn = topic_arn
-        self.endpoint_url = endpoint_url
+        self.endpoint_url = settings.INIESTA_SNS_ENDPOINT_URL
 
     @classmethod
-    async def initialize(cls, *, topic_arn, endpoint_url=None):
+    async def initialize(cls, *, topic_arn):
         """
         Class method to initialize the SNS Client and confirm the topic exists.
         We needed to do this because of asyncio functionality
 
         :param topic_arn:
-        :param endpoint_url:
         :param loop:
         :return:
         """
 
         try:
-            await cls._confirm_topic(topic_arn, endpoint_url)
+            await cls._confirm_topic(topic_arn)
         except botocore.exceptions.ClientError as e:
             error_message = f"[{e.response['Error']['Code']}]: {e.response['Error']['Message']} {topic_arn}"
             error_logger.critical(error_message)
             raise
 
-        return cls(topic_arn, endpoint_url)
+        return cls(topic_arn)
 
     @classmethod
-    async def _confirm_topic(cls, topic_arn, endpoint_url=None):
+    async def _confirm_topic(cls, topic_arn):
         """
         Confirm that the topic exists
         :param topic_arn:
-        :param endpoint_url:
         :return:
         """
         session = BotoSession.get_session()
 
-        async with session.create_client('sns', endpoint_url=endpoint_url) as client:
+        async with session.create_client('sns', endpoint_url=settings.INIESTA_SNS_ENDPOINT_URL) as client:
             await client.get_topic_attributes(TopicArn=topic_arn)
 
     async def _list_subscriptions_by_topic(self, next_token=None):

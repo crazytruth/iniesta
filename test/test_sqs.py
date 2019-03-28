@@ -7,6 +7,7 @@ import ujson as json
 from insanic.conf import settings
 from iniesta.sqs import SQSClient
 from iniesta.sqs.client import default
+from iniesta.sqs.message import SQSMessage
 
 from .infra import SQSInfra
 
@@ -41,12 +42,10 @@ class TestSQSClient(SQSInfra):
 
     async def test_sqs_client_initialize_queue_does_not_exist(self, start_local_aws, sqs_endpoint_url):
         with pytest.raises(botocore.exceptions.ClientError, match="") as exc_info:
-            client = await SQSClient.initialize(queue_name='asdasdasda',
-                                                endpoint_url=sqs_endpoint_url)
+            client = await SQSClient.initialize(queue_name='asdasdasda')
 
     async def test_sqs_client(self, start_local_aws, create_service_sqs, sqs_endpoint_url):
-        client = await SQSClient.initialize(queue_name=self.queue_name,
-                                            endpoint_url=sqs_endpoint_url)
+        client = await SQSClient.initialize(queue_name=self.queue_name)
 
         assert self.queue_name in client.queue_urls[self.queue_name]
         assert client.queue_url == create_service_sqs['QueueUrl']
@@ -78,7 +77,7 @@ class TestSQSClient(SQSInfra):
         monkeypatch.setattr(SQSClient, 'hook_post_receive_message_handler', mock_hook_post_message_handler)
         monkeypatch.setattr(SQSClient, 'handle_message', mock_handle_message)
 
-        client = await SQSClient.initialize(queue_name=self.queue_name, endpoint_url=sqs_endpoint_url)
+        client = await SQSClient.initialize(queue_name=self.queue_name)
         client.start_receiving_messages()
 
         await client._polling_task
@@ -111,8 +110,7 @@ class TestSQSClient(SQSInfra):
         monkeypatch.setattr(SQSClient, 'hook_post_receive_message_handler', mock_hook_post_message_handler)
         monkeypatch.setattr(SQSClient, 'handle_message', mock_handle_message)
 
-        client = await SQSClient.initialize(queue_name=self.queue_name,
-                                            endpoint_url=sqs_endpoint_url)
+        client = await SQSClient.initialize(queue_name=self.queue_name)
         client.start_receiving_messages()
 
         await client._polling_task
@@ -167,7 +165,7 @@ class TestSQSClient(SQSInfra):
             return "something"
 
 
-        client = await SQSClient.initialize(queue_name=self.queue_name, endpoint_url=sqs_endpoint_url)
+        client = await SQSClient.initialize(queue_name=self.queue_name)
         # poll_task = asyncio.ensure_future(client._poll())
         client.start_receiving_messages()
 
@@ -191,8 +189,7 @@ class TestSQSClient(SQSInfra):
 
             return "mess"
 
-        client = await SQSClient.initialize(queue_name=self.queue_name,
-                                            endpoint_url=sqs_endpoint_url)
+        client = await SQSClient.initialize(queue_name=self.queue_name)
 
         client.start_receiving_messages()
 
@@ -329,3 +326,18 @@ class TestSQSHandlerRegistration:
             @SQSClient.handler(event)
             def handler_two(*args, **kwargs):
                 return "two"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

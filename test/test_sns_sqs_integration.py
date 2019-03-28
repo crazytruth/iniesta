@@ -36,15 +36,13 @@ class TestSNSSQSIntegration(SQSInfra, SNSInfra):
     @pytest.fixture(scope='function')
     async def sns_client(self, create_global_sns, sns_endpoint_url):
         return await SNSClient.initialize(
-            topic_arn=create_global_sns['TopicArn'],
-            endpoint_url=sns_endpoint_url,
+            topic_arn=create_global_sns['TopicArn']
         )
 
     @pytest.fixture(scope='function')
     async def sqs_client(self, sqs_endpoint_url, sns_client):
         client = await SQSClient.initialize(
-            queue_name=self.queue_name,
-            endpoint_url=sqs_endpoint_url
+            queue_name=self.queue_name
         )
         yield client
 
@@ -161,4 +159,4 @@ class TestSNSSQSIntegration(SQSInfra, SNSInfra):
 
     async def test_confirm_subscription(self, start_local_aws, create_sqs_subscription,
                                         sqs_client, sns_client):
-        await sqs_client.confirm_subscription(sns_client.topic_arn, sns_endpoint_url=sns_client.endpoint_url)
+        await sqs_client.confirm_subscription(sns_client.topic_arn)
