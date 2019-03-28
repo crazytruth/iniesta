@@ -2,35 +2,73 @@ import hashlib
 import ujson as json
 
 from insanic.conf import settings
+from iniesta.messages import MessageAttributes
+
+empty = object()
 
 
-class SQSMessage:
+class SQSMessage(MessageAttributes):
 
-    def __init__(self, message):
+    def __init__(self, message, delay_seconds=0):
+        super().__init__()
+        self['MessageBody'] = message
+        self['DelaySeconds'] = delay_seconds
+        self.message_id = None
+        self.original_message = None
+        self.receipt_handle = None
+        self.md5_of_body = None
+        self.attributes = None
+
+    @classmethod
+    def from_sqs(cls, message):
+
         try:
-            self.original_message = message
-            self.message_id = message['MessageId']
-            self.receipt_handle = message['ReceiptHandle']
-            self.md5_of_body = message['MD5OfBody']
-            self.attributes = message['Attributes']
+            message_object = cls(message['Body'])
+            message_object.original_message = message
+            message_object.message_id = message['MessageId']
+            message_object.receipt_handle = message['ReceiptHandle']
+            message_object.md5_of_body = message['MD5OfBody']
+            message_object.attributes = message['Attributes']
 
-            self.raw_body = message['Body']
-            self.raw_message_attributes = message.get('MessageAttributes', {})
+            message_object['MessageAttributes'] = message.get('MessageAttributes', {})
 
-            self.body = json.loads(self.raw_body)
-            self.message_attributes = self._unpack_message_attributes(self.raw_message_attributes)
+            message_object.body = json.loads(message_object['MessageBody'])
+            # message_object.message_attributes = message_object._unpack_message_attributes(
+            #     message_object['MessageAttributes'])
         except KeyError as e:
             raise ValueError(f"SQS Message is invalid: {e.args[0]}")
+        else:
+            return message_object
 
     def __eq__(self, other):
-        return self.message_id == other.message_id
+        if self.message_id is not None:
+            return self.message_id == other.message_id
+        else:
+            return False
+
+    @property
+    def delay_seconds(self):
+        return self['DelaySeconds']
+
+    @delay_seconds.setter
+    def delay_seconds(self, value):
+        if not isinstance(value, int):
+            raise ValueError(f'Delay Seconds must be an integer. Got {value}.')
+        elif value < 0 or value > 900:
+            raise ValueError(f'Delay Seconds must be between 0 and 900 inclusive. Got {value}.')
+
+        self['DelaySeconds'] = value
+
+    @property
+    def raw_body(self):
+        return self['MessageBody']
 
     @property
     def event(self):
-        return self.message_attributes[settings.INIESTA_SNS_EVENT_KEY]
+        return self.message_attributes[settings.INIESTA_SNS_EVENT_KEY]['StringValue']
 
     def checksum_body(self):
-        return hashlib.md5(self.raw_body.encode('utf-8')).hexdigest() == self.md5_of_body
+        return hashlib.md5(self['MessageBody'].encode('utf-8')).hexdigest() == self.md5_of_body
 
     @staticmethod
     def _unpack_message_attributes(message_attributes):
