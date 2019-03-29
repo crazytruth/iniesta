@@ -9,13 +9,13 @@ from insanic.log import error_logger, logger
 
 class SNSClient:
 
-    def __init__(self, topic_arn):
+    def __init__(self, topic_arn=None):
         """
         initialize client with topic arn and endpoint url
 
         :param topic_arn:
         """
-        self.topic_arn = topic_arn
+        self.topic_arn = topic_arn or settings.INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN
         self.endpoint_url = settings.INIESTA_SNS_ENDPOINT_URL
 
     @classmethod
