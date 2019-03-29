@@ -1,3 +1,4 @@
+import ujson as json
 from insanic.conf import settings
 
 from iniesta.messages import MessageAttributes
@@ -25,7 +26,10 @@ class SNSMessage(MessageAttributes):
     @message.setter
     def message(self, value):
         if not isinstance(value, str):
-            raise ValueError("Message must be a string.")
+            try:
+                value = json.dumps(value)
+            except:
+                raise ValueError("Message must be a string.")
 
         self['Message'] = value
 
