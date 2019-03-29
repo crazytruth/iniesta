@@ -93,8 +93,8 @@ class SQSClient:
                 subscription_arn=service_subscriptions['SubscriptionArn']
             )
 
-            assert subscription_attributes['Attributes'].get('FilterPolicy', {}) \
-                   == json.dumps(self.filters)
+            assert json.loads(subscription_attributes['Attributes'].get('FilterPolicy', '{}')) \
+                   == self.filters
 
     async def confirm_permission(self, topic_arn):
         session = BotoSession.get_session()
