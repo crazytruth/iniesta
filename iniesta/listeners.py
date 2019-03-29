@@ -1,15 +1,8 @@
-from insanic.conf import settings
-from insanic.log import error_logger
-
 from iniesta.sns import SNSClient
 from iniesta.sqs import SQSClient
 
 
 class IniestaListener:
-
-    def __init__(self):
-        self.sns_endpoint_url = settings.INIESTA_SNS_ENDPOINT_URL
-        self.sqs_endpoint_url = settings.INIESTA_SQS_ENDPOINT_URL
 
     async def _initialize_sns(self, app):
         app.xavi = await SNSClient.initialize(
