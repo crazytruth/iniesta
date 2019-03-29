@@ -32,9 +32,10 @@ class SQSMessage(MessageAttributes):
 
             message_object['MessageAttributes'] = message.get('MessageAttributes', {})
 
-            message_object.body = json.loads(message_object['MessageBody'])
-            # message_object.message_attributes = message_object._unpack_message_attributes(
-            #     message_object['MessageAttributes'])
+            try:
+                message_object.body = json.loads(message_object['MessageBody'])
+            except ValueError:
+                message_object.body = message_object['MessageBody']
         except KeyError as e:
             raise ValueError(f"SQS Message is invalid: {e.args[0]}")
         else:
