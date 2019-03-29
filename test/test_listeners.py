@@ -34,6 +34,7 @@ class TestListeners(SNSInfra, SQSInfra):
         yield client
 
         SQSClient.handlers = {}
+        SQSClient.queue_urls = {}
 
     @pytest.fixture
     def listener(self, start_local_aws,
