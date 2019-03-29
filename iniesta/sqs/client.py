@@ -113,8 +113,8 @@ class SQSClient:
 
         # need "Effect": "Allow", "Action": "SQS:SendMessage"
         assert statement['Effect'] == "Allow"
-        assert statement['Action'] == "SQS:SendMessage"
-        assert statement['Condition']['ArnEquals']['aws:SourceArn'] == topic_arn
+        assert "SQS:SendMessage" in statement['Action']
+        # assert statement['Condition']['ArnEquals']['aws:SourceArn'] == topic_arn
 
     @property
     def filters(self):
