@@ -8,7 +8,7 @@ class _Initializer(type):
 
     def __getattribute__(cls, item):
         if item.startswith('init_'):
-            if cls.initialization_type is not None:
+            if cls._initialization_type is not None:
                 raise ImproperlyConfigured('Iniesta has already been initialized!')
         return super().__getattribute__(item)
 
