@@ -8,7 +8,7 @@ class _Initializer(type):
 
     def __getattribute__(cls, item):
         if item.startswith('init_'):
-            if cls._initialization_type is not None:
+            if cls.initialization_type is not None:
                 raise ImproperlyConfigured('Iniesta has already been initialized!')
         return super().__getattribute__(item)
 
@@ -16,18 +16,14 @@ class _Initializer(type):
 class Iniesta(metaclass=_Initializer):
 
     config_imported = False
-    _initialization_type = None
+    initialization_type = None
 
-    @property
-    def initialization_type(self):
-        return self._initialization_type
-
-    @initialization_type.setter
-    def initialization_type(self, value):
-        if self._initialization_type is None:
-            self.initialization_type = value
+    @classmethod
+    def set_initialization_type(cls, value):
+        if cls.initialization_type is None:
+            cls.initialization_type = value
         else:
-            self.initialization_type = self.initialization_type | value
+            cls.initialization_type = cls.initialization_type | value
 
     @classmethod
     def check_global_arn(cls, settings_object):
@@ -81,7 +77,7 @@ class Iniesta(metaclass=_Initializer):
         listener = IniestaListener()
         app.register_listener(listener.after_server_start_producer_check,
                               'after_server_start')
-        cls.initialization_type = InitializationTypes.SNS_PRODUCER
+        cls.set_initialization_type(InitializationTypes.SNS_PRODUCER)
 
     @classmethod
     def init_queue_polling(cls, app):
@@ -104,7 +100,7 @@ class Iniesta(metaclass=_Initializer):
                               'after_server_start')
         app.register_listener(listener.before_server_stop_stop_polling,
                               'before_server_stop')
-        cls.initialization_type = InitializationTypes.QUEUE_POLLING
+        cls.set_initialization_type(InitializationTypes.QUEUE_POLLING)
 
     @classmethod
     def init_event_polling(cls, app):
@@ -141,7 +137,7 @@ class Iniesta(metaclass=_Initializer):
                               'after_server_start')
         app.register_listener(listener.before_server_stop_stop_polling,
                               'before_server_stop')
-        cls.initialization_type = InitializationTypes.EVENT_POLLING
+        cls.set_initialization_type(InitializationTypes.EVENT_POLLING)
 
     @classmethod
     def prepare_for_delivering_through_pass(cls, app):
