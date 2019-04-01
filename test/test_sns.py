@@ -225,16 +225,20 @@ class TestSNSClient(SNSInfra):
         assert client.topic_arn == create_global_sns['TopicArn']
 
 
-    async def test_client_publish(self, start_local_aws, create_global_sns, sns_endpoint_url):
+    async def test_client_create_message(self, start_local_aws, create_global_sns, sns_endpoint_url):
         client = await SNSClient.initialize(
             topic_arn=create_global_sns['TopicArn']
         )
 
-        response = await client.publish_event(event="SomethingAwesomeHappened", message="Great Success!", value="Something")
+        response = client.create_message(
+            event="SomethingAwesomeHappened",
+            message="Great Success!", value="Something")
 
         assert response is not None
-        assert 'MessageId' in response
-        assert response['MessageId'] is not None
+        assert response.client == client
+        assert isinstance(response, SNSMessage)
+        # assert 'MessageId' in response
+        # assert response['MessageId'] is not None
 
     async def test_client_topic_doesnt_exist(self, start_local_aws, sns_endpoint_url):
 

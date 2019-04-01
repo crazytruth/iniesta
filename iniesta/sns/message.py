@@ -1,10 +1,16 @@
+import botocore
 import ujson as json
+
 from insanic.conf import settings
 
+from iniesta.loggers import logger, error_logger
+from iniesta.sessions import BotoSession
 from iniesta.messages import MessageAttributes
 
 
 class SNSMessage(MessageAttributes):
+
+    MAX_BODY_SIZE = 1024 * 256
 
     def __init__(self, message=""):
         super().__init__()
@@ -31,6 +37,10 @@ class SNSMessage(MessageAttributes):
             except:
                 raise ValueError("Message must be a string.")
 
+        if len(value.encode('utf8')) > self.MAX_BODY_SIZE:
+            raise ValueError(f"Message is too long! Max is {self.MAX_BODY_SIZE} bytes. "
+                             f"{len(value.encode('utf8'))} bytes calculated.")
+
         self['Message'] = value
 
     @property
@@ -54,3 +64,33 @@ class SNSMessage(MessageAttributes):
 
         self['MessageStructure'] = value
 
+    async def publish(self):
+
+        session = BotoSession.get_session()
+        try:
+            async with session.create_client('sns', endpoint_url=self.client.endpoint_url) as client:
+                message = await client.publish(TopicArn=self.client.topic_arn, **self)
+                logger.debug(f"[INIESTA] Published ({self.event}) with "
+                             f"the following attributes: {self}")
+                return message
+        except botocore.exceptions.ClientError as e:
+            error_logger.critical(f"[{e.response['Error']['Code']}]: {e.response['Error']['Message']}")
+            raise
+        except Exception:
+            error_logger.exception("Publishing SNS Message Failed!")
+            raise
+
+    @classmethod
+    def create_message(cls, client, *, event, message, version=1, **message_attributes):
+
+        message_object = cls(message)
+        message_object.message = message
+
+        for ma, mv in message_attributes.items():
+            message_object.add_attribute(ma, mv)
+
+        message_object.add_event(event)
+        message_object.add_number_attribute('version', version)
+        message_object.client = client
+
+        return message_object

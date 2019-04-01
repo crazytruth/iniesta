@@ -63,8 +63,9 @@ class TestSNSSQSIntegration(SQSInfra, SNSInfra):
             return True
 
         try:
-            response = await sns_client.publish_event(event="Request", message=json.dumps({"id": some_id}),
+            message = sns_client.create_message(event="Request", message=json.dumps({"id": some_id}),
                                                       round="one")
+            await message.publish()
         except Exception as e:
             raise
 
@@ -94,12 +95,14 @@ class TestSNSSQSIntegration(SQSInfra, SNSInfra):
 
         publish_tasks = []
         for i in range(10):
+            message = sns_client.create_message(
+                event="1RequestTestEvent1",
+                message=json.dumps({"id": i}),
+                round=i
+            )
+
             publish_tasks.append(asyncio.ensure_future(
-                sns_client.publish_event(
-                    event="1RequestTestEvent1",
-                    message=json.dumps({"id": i}),
-                    round=i
-                )))
+                message.publish()))
 
         await asyncio.gather(*publish_tasks)
 
@@ -135,12 +138,13 @@ class TestSNSSQSIntegration(SQSInfra, SNSInfra):
 
         publish_tasks = []
         for i in range(10):
+            message = sns_client.create_message(
+                event="Request",
+                message=json.dumps({"id": i}),
+                round=i
+            )
             publish_tasks.append(asyncio.ensure_future(
-                sns_client.publish_event(
-                    event="Request",
-                    message=json.dumps({"id": i}),
-                    round=i
-                )))
+                message.publish()))
 
         await asyncio.gather(*publish_tasks)
         sqs_client.start_receiving_messages()

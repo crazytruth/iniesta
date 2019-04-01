@@ -10,6 +10,7 @@ from insanic.log import logger, error_logger
 from iniesta.exceptions import StopPolling, ImproperlyConfigured
 from iniesta.sessions import BotoSession
 from iniesta.sns import SNSClient
+from iniesta.utils import filter_list_to_filter_policies
 
 from .message import SQSMessage
 
@@ -119,20 +120,10 @@ class SQSClient:
     @property
     def filters(self):
         if self._filters is None:
-            processed_filters = []
-
-            for filters in settings.INIESTA_SQS_CONSUMER_FILTERS:
-                event = filters.split('.')
-                assert len(event) == 2
-
-                if event[1] == "*":
-                    processed_filters.append({"prefix": f"{event[0]}."})
-                else:
-                    processed_filters.append(filters)
-            if len(processed_filters) > 0:
-                self._filters = {settings.INIESTA_SNS_EVENT_KEY: processed_filters}
-            else:
-                self._filters = {}
+            self._filters = filter_list_to_filter_policies(
+                settings.INIESTA_SNS_EVENT_KEY,
+                settings.INIESTA_SQS_CONSUMER_FILTERS
+            )
         return self._filters
 
     def start_receiving_messages(self, loop=None):
@@ -237,7 +228,7 @@ class SQSClient:
                 except botocore.exceptions.ClientError as e:
                     error_logger.critical(f"[INIESTA] [{e.response['Error']['Code']}]: {e.response['Error']['Message']}")
                 else:
-                    event_tasks = [asyncio.ensure_future(self.handle_message(SQSMessage.from_sqs(message)))
+                    event_tasks = [asyncio.ensure_future(self.handle_message(SQSMessage.from_sqs(client, message)))
                                    for message in response.get('Messages', [])]
 
                     for fut in asyncio.as_completed(event_tasks):

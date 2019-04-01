@@ -94,31 +94,7 @@ class SNSClient:
         async with BotoSession.get_session().create_client('sns', endpoint_url=self.endpoint_url) as client:
             return await client.get_subscription_attributes(SubscriptionArn=subscription_arn)
 
-    async def _publish(self, message_attributes):
-        """
-
-        :param message_attributes: attributes to send in aiobotocore sns publish api
-        :return:
-        """
-
-        session = BotoSession.get_session()
-        try:
-            async with session.create_client('sns', endpoint_url=self.endpoint_url) as client:
-                message = await client.publish(TopicArn=self.topic_arn, **message_attributes)
-
-                logger.debug(f"[INIESTA] Published ({message_attributes.event}) with "
-                             f"the following attributes: {message_attributes}")
-                return message
-
-        except botocore.exceptions.ClientError as e:
-            error_logger.critical(f"[{e.response['Error']['Code']}]: {e.response['Error']['Message']}")
-            raise
-        except Exception as e:
-
-
-            raise
-
-    async def publish_event(self, *, event, message, version=1, **message_attributes):
+    def create_message(self, *, event, message, version=1, **message_attributes):
         """
 
         :param event: the event to publish (will be used to filter)
@@ -127,14 +103,8 @@ class SNSClient:
         :param message_attributes:
         :return:
         """
-        message_payload = SNSMessage(message)
-        message_payload.message = message
-
-        for ma, mv in message_attributes.items():
-            message_payload.add_attribute(ma, mv)
-
-        message_payload.add_event(event)
-        message_payload.add_number_attribute("version", version)
-
-        publish_response = await self._publish(message_payload)
-        return publish_response
+        message_payload = SNSMessage.create_message(self, event=event,
+                                                    message=message,
+                                                    version=version,
+                                                    **message_attributes)
+        return message_payload

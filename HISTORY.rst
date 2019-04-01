@@ -10,7 +10,8 @@ History
 - FEAT: allow decorating of default(fallback) handler
 - FEAT: attempt to auto json encode sns message
 - FEAT: topic arn when initializing defaults to settings
-- FEAT: commands for extracting settings `initialization-type` and `filter-policies`
+- FEAT: commands for extracting settings ``initialization-type`` and ``filter-policies``
+- REFACTOR: changes to clients so the messages do the actual behavior(SNSMessage publishes, SQSMessages sends)
 - CHORE: more test coverage
 - CHORE: refactor endpoint urls to settings
 - CHORE: refactor message attributes from SNSMessage to base class

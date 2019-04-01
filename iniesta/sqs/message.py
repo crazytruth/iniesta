@@ -1,18 +1,28 @@
+import botocore
 import hashlib
 import ujson as json
 
 from insanic.conf import settings
+from iniesta.loggers import error_logger
 from iniesta.messages import MessageAttributes
+from iniesta.sessions import BotoSession
 
 empty = object()
 
+VALID_SEND_MESSAGE_ARGS = [
+    'MessageBody',
+    'DelaySeconds',
+    'MessageAttributes',
+    'MessageDeduplicationId',
+    'MessageGroupId'
+]
 
 class SQSMessage(MessageAttributes):
 
-    def __init__(self, message, delay_seconds=0):
+    def __init__(self, client, message):
         super().__init__()
+        self.client = client
         self['MessageBody'] = message
-        self['DelaySeconds'] = delay_seconds
         self.message_id = None
         self.original_message = None
         self.receipt_handle = None
@@ -20,10 +30,10 @@ class SQSMessage(MessageAttributes):
         self.attributes = None
 
     @classmethod
-    def from_sqs(cls, message):
+    def from_sqs(cls, client, message):
 
         try:
-            message_object = cls(message['Body'])
+            message_object = cls(client, message['Body'])
             message_object.original_message = message
             message_object.message_id = message['MessageId']
             message_object.receipt_handle = message['ReceiptHandle']
@@ -49,7 +59,7 @@ class SQSMessage(MessageAttributes):
 
     @property
     def delay_seconds(self):
-        return self['DelaySeconds']
+        return self.get('DelaySeconds', 0)
 
     @delay_seconds.setter
     def delay_seconds(self, value):
@@ -85,3 +95,23 @@ class SQSMessage(MessageAttributes):
             _message_attributes.update({attribute: attribute_value[f'{data_type}Value']})
 
         return _message_attributes
+
+    # @classmethod
+    # def create_message(cls, ):
+
+    async def send(self):
+        session = BotoSession.get_session()
+        try:
+            async with session.create_client('sqs',
+                                             endpoint_url=self.client.endpoint_url) as client:
+                message = await client.send_message(QueueUrl=self.client.queue_url,
+                                                    **{k:v for k,v in self.items()
+                                                       if k in VALID_SEND_MESSAGE_ARGS})
+                return message
+        except botocore.exceptions.ClientError as e:
+            error_logger.critical(f"[{e.response['Error']['Code']}]: {e.response['Error']['Message']}")
+            raise
+        except Exception:
+            error_logger.exception('Sending SQS message failed.')
+            raise
+
