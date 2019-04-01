@@ -181,7 +181,48 @@ There are two paths for handling the message
     * will NOT delete message from SQS Queue
     * message will be available again for consumption after invisibility timeout
 
+Commands
+========
 
+Several commands to help with deployment.
+
+Setup
+*****
+
+Requirements:
+
+- VAULT_ROLE_ID
+- MMT_ENV
+
+.. code-block:: bash
+
+    $ pip install iniesta[deploy]
+
+To get initialization type
+##########################
+
+.. code-block:: bash
+
+    $ iniesta initialization-type
+    18
+
+The returned values are:
+
+- 1: QUEUE_POLLING
+- 2: EVENT_POLLING
+- 16: SNS_PRODUCER
+- 18: SNS_PRODUCER|EVENT_POLLING
+
+
+To get filter policies
+######################
+
+if `INIESTA_SQS_CONSUMER_FILTERS = ['some.*']`
+
+.. code-block:: bash
+
+    $ iniesta filter-policies
+    {"iniesta_pass": [{"prefix": "some."}]}
 
 
 Development

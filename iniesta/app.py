@@ -2,7 +2,7 @@ from . import config
 from .choices import InitializationTypes
 from .exceptions import ImproperlyConfigured
 from .listeners import IniestaListener
-
+from .utils import filter_list_to_filter_policies
 
 class _Initializer(type):
 
@@ -160,3 +160,10 @@ class Iniesta(metaclass=_Initializer):
     @classmethod
     def prepare_for_passing_and_receiving(cls, app):
         cls.init_app(app)
+
+    @classmethod
+    def filter_policies(cls):
+        from insanic.conf import settings
+        return filter_list_to_filter_policies(
+            settings.INIESTA_SNS_EVENT_KEY,
+            settings.INIESTA_SQS_CONSUMER_FILTERS)
