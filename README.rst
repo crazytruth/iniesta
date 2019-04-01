@@ -191,15 +191,15 @@ Setup
 
 Requirements:
 
-- VAULT_ROLE_ID
-- MMT_ENV
+- ``VAULT_ROLE_ID``
+- ``MMT_ENV``
 
 .. code-block:: bash
 
     $ pip install iniesta[deploy]
 
 To get initialization type
-##########################
+**************************
 
 .. code-block:: bash
 
@@ -208,17 +208,17 @@ To get initialization type
 
 The returned values are:
 
-- QUEUE_POLLING
-- EVENT_POLLING
-- SNS_PRODUCER
+- ``QUEUE_POLLING``
+- ``EVENT_POLLING``
+- ``SNS_PRODUCER``
 
 or a combination of them.
 
 
 To get filter policies
-######################
+**********************
 
-if `INIESTA_SQS_CONSUMER_FILTERS = ['some.*']`
+if ``INIESTA_SQS_CONSUMER_FILTERS = ['some.*']``
 
 .. code-block:: bash
 
