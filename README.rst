@@ -204,14 +204,15 @@ To get initialization type
 .. code-block:: bash
 
     $ iniesta initialization-type
-    18
+    InitializationTypes.SNS_PRODUCER|EVENT_POLLING
 
 The returned values are:
 
-- 1: QUEUE_POLLING
-- 2: EVENT_POLLING
-- 16: SNS_PRODUCER
-- 18: SNS_PRODUCER|EVENT_POLLING
+- QUEUE_POLLING
+- EVENT_POLLING
+- SNS_PRODUCER
+
+or a combination of them.
 
 
 To get filter policies
