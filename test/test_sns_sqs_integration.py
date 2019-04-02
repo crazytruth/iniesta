@@ -36,15 +36,13 @@ class TestSNSSQSIntegration(SQSInfra, SNSInfra):
     @pytest.fixture(scope='function')
     async def sns_client(self, create_global_sns, sns_endpoint_url):
         return await SNSClient.initialize(
-            topic_arn=create_global_sns['TopicArn'],
-            endpoint_url=sns_endpoint_url,
+            topic_arn=create_global_sns['TopicArn']
         )
 
     @pytest.fixture(scope='function')
     async def sqs_client(self, sqs_endpoint_url, sns_client):
         client = await SQSClient.initialize(
-            queue_name=self.queue_name,
-            endpoint_url=sqs_endpoint_url
+            queue_name=self.queue_name
         )
         yield client
 
@@ -65,8 +63,9 @@ class TestSNSSQSIntegration(SQSInfra, SNSInfra):
             return True
 
         try:
-            response = await sns_client.publish_event(event="Request", message=json.dumps({"id": some_id}),
+            message = sns_client.create_message(event="Request", message=json.dumps({"id": some_id}),
                                                       round="one")
+            await message.publish()
         except Exception as e:
             raise
 
@@ -96,12 +95,14 @@ class TestSNSSQSIntegration(SQSInfra, SNSInfra):
 
         publish_tasks = []
         for i in range(10):
+            message = sns_client.create_message(
+                event="1RequestTestEvent1",
+                message=json.dumps({"id": i}),
+                round=i
+            )
+
             publish_tasks.append(asyncio.ensure_future(
-                sns_client.publish_event(
-                    event="1RequestTestEvent1",
-                    message=json.dumps({"id": i}),
-                    round=i
-                )))
+                message.publish()))
 
         await asyncio.gather(*publish_tasks)
 
@@ -137,18 +138,19 @@ class TestSNSSQSIntegration(SQSInfra, SNSInfra):
 
         publish_tasks = []
         for i in range(10):
+            message = sns_client.create_message(
+                event="Request",
+                message=json.dumps({"id": i}),
+                round=i
+            )
             publish_tasks.append(asyncio.ensure_future(
-                sns_client.publish_event(
-                    event="Request",
-                    message=json.dumps({"id": i}),
-                    round=i
-                )))
+                message.publish()))
 
         await asyncio.gather(*publish_tasks)
         sqs_client.start_receiving_messages()
         await sqs_client._polling_task
-        assert len(received_messages) == 10
-        assert len(delete_messages) == 10
+        assert len(received_messages) > 0
+        assert len(delete_messages) > 0
         assert sorted(received_messages, key=lambda x: x.message_id) == sorted(delete_messages, key=lambda x: x.message_id)
 
 
@@ -161,4 +163,4 @@ class TestSNSSQSIntegration(SQSInfra, SNSInfra):
 
     async def test_confirm_subscription(self, start_local_aws, create_sqs_subscription,
                                         sqs_client, sns_client):
-        await sqs_client.confirm_subscription(sns_client.topic_arn, sns_endpoint_url=sns_client.endpoint_url)
+        await sqs_client.confirm_subscription(sns_client.topic_arn)

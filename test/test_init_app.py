@@ -4,7 +4,7 @@ import pytest
 from insanic import Insanic
 from insanic.conf import settings
 from iniesta import Iniesta, config
-from iniesta.app import ImproperlyConfigured
+from iniesta.exceptions import ImproperlyConfigured
 from iniesta.listeners import IniestaListener
 
 
@@ -63,7 +63,7 @@ class TestIniestaInitialize(InitializeFixtures):
         init_method = getattr(Iniesta, init_method_name)
         init_method(insanic_application)
 
-        assert Iniesta.initialized is True
+        assert Iniesta.initialization_type is not None
         assert Iniesta.config_imported is True
 
         listener_functions = self._get_function_list(
@@ -78,7 +78,7 @@ class TestIniestaInitialize(InitializeFixtures):
         init_method = getattr(Iniesta, init_method_name)
         init_method(insanic_application)
 
-        assert Iniesta.initialized is True
+        assert Iniesta.initialization_type is not None
         assert Iniesta.config_imported is True
 
         after_server_start_listener_functions = self._get_function_list(
@@ -98,7 +98,7 @@ class TestIniestaInitialize(InitializeFixtures):
         init_method = getattr(Iniesta, init_method_name)
         init_method(insanic_application)
 
-        assert Iniesta.initialized is True
+        assert Iniesta.initialization_type is not None
         assert Iniesta.config_imported is True
 
         after_server_start_listener_functions = self._get_function_list(
@@ -119,7 +119,7 @@ class TestIniestaInitialize(InitializeFixtures):
 
         init_method(insanic_application)
 
-        assert Iniesta.initialized is True
+        assert Iniesta.initialization_type is not None
         assert Iniesta.config_imported is True
 
         after_server_start_listener_functions = self._get_function_list(
@@ -191,7 +191,7 @@ class TestInitializeWithSNS(SNSInfra):
 
         app = Insanic("xavi")
 
-        Iniesta.init_app(app, sns_endpoint_url=sns_endpoint_url, sqs_endpoint_url=sqs_endpoint_url)
+        Iniesta.init_app(app)
         yield app
 
     @pytest.fixture(autouse=True)

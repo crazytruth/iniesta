@@ -3,10 +3,8 @@
 import os
 import sys
 
-try:
-    from setuptools import setup
-except ImportError:
-    from distutils.core import setup
+
+from setuptools import setup, find_packages
 
 
 if sys.argv[-1] == 'publish':
@@ -35,13 +33,9 @@ test_requires = [
     'boto3==1.9.99',
     'localstack==0.8.10',
     "requests",
-
-
-
-
 ]
 
-version = '0.1.2.dev0'
+version = '0.1.3.dev0'
 
 setup(
     name='iniesta',
@@ -51,10 +45,8 @@ setup(
     author='Kwang Jin Kim',
     author_email='david@mymusictaste.com',
     url='https://github.com/MyMusicTate/iniesta',
-    packages=[
-        'iniesta',
-    ],
-    package_dir={'iniesta': 'iniesta'},
+    packages=find_packages(include=['iniesta',]),
+    # package_dir={'iniesta': 'iniesta', 'commands': 'commands'},
     include_package_data=True,
     install_requires=[
         'insanic',
@@ -67,7 +59,8 @@ setup(
     keywords='iniesta',
     extras_require={
         "development": test_requires,
-        "release": ["zest.releaser[recommended]", "flake8"]
+        "release": ["zest.releaser[recommended]", "flake8"],
+        "deploy": ["Click>=6.0"]
     },
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
@@ -76,4 +69,14 @@ setup(
         'Natural Language :: English',
         'Programming Language :: Python :: 3.6',
     ],
+    # entry_points={
+    #     'console_scripts': [
+    #         'iniesta=commands.iniesta:cli',
+    #     ],
+    # },
+    entry_points={
+        'console_scripts': [
+            'iniesta=iniesta_commands.commands:cli',
+        ],
+    },
 )

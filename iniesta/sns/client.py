@@ -3,53 +3,51 @@ import botocore.exceptions
 from iniesta.sessions import BotoSession
 from iniesta.sns import SNSMessage
 
+from insanic.conf import settings
 from insanic.log import error_logger, logger
 
 
 class SNSClient:
 
-    def __init__(self, topic_arn, endpoint_url=None):
+    def __init__(self, topic_arn=None):
         """
         initialize client with topic arn and endpoint url
 
         :param topic_arn:
-        :param endpoint_url:
         """
-        self.topic_arn = topic_arn
-        self.endpoint_url = endpoint_url
+        self.topic_arn = topic_arn or settings.INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN
+        self.endpoint_url = settings.INIESTA_SNS_ENDPOINT_URL
 
     @classmethod
-    async def initialize(cls, *, topic_arn, endpoint_url=None):
+    async def initialize(cls, *, topic_arn):
         """
         Class method to initialize the SNS Client and confirm the topic exists.
         We needed to do this because of asyncio functionality
 
         :param topic_arn:
-        :param endpoint_url:
         :param loop:
         :return:
         """
 
         try:
-            await cls._confirm_topic(topic_arn, endpoint_url)
+            await cls._confirm_topic(topic_arn)
         except botocore.exceptions.ClientError as e:
             error_message = f"[{e.response['Error']['Code']}]: {e.response['Error']['Message']} {topic_arn}"
             error_logger.critical(error_message)
             raise
 
-        return cls(topic_arn, endpoint_url)
+        return cls(topic_arn)
 
     @classmethod
-    async def _confirm_topic(cls, topic_arn, endpoint_url=None):
+    async def _confirm_topic(cls, topic_arn):
         """
         Confirm that the topic exists
         :param topic_arn:
-        :param endpoint_url:
         :return:
         """
         session = BotoSession.get_session()
 
-        async with session.create_client('sns', endpoint_url=endpoint_url) as client:
+        async with session.create_client('sns', endpoint_url=settings.INIESTA_SNS_ENDPOINT_URL) as client:
             await client.get_topic_attributes(TopicArn=topic_arn)
 
     async def _list_subscriptions_by_topic(self, next_token=None):
@@ -96,31 +94,7 @@ class SNSClient:
         async with BotoSession.get_session().create_client('sns', endpoint_url=self.endpoint_url) as client:
             return await client.get_subscription_attributes(SubscriptionArn=subscription_arn)
 
-    async def _publish(self, message_attributes):
-        """
-
-        :param message_attributes: attributes to send in aiobotocore sns publish api
-        :return:
-        """
-
-        session = BotoSession.get_session()
-        try:
-            async with session.create_client('sns', endpoint_url=self.endpoint_url) as client:
-                message = await client.publish(TopicArn=self.topic_arn, **message_attributes)
-
-                logger.debug(f"[INIESTA] Published ({message_attributes.event}) with "
-                             f"the following attributes: {message_attributes}")
-                return message
-
-        except botocore.exceptions.ClientError as e:
-            error_logger.critical(f"[{e.response['Error']['Code']}]: {e.response['Error']['Message']}")
-            raise
-        except Exception as e:
-
-
-            raise
-
-    async def publish_event(self, *, event, message, version=1, **message_attributes):
+    def create_message(self, *, event, message, version=1, **message_attributes):
         """
 
         :param event: the event to publish (will be used to filter)
@@ -129,14 +103,8 @@ class SNSClient:
         :param message_attributes:
         :return:
         """
-        message_payload = SNSMessage(message)
-        message_payload.message = message
-
-        for ma, mv in message_attributes.items():
-            message_payload.add_attribute(ma, mv)
-
-        message_payload.add_event(event)
-        message_payload.add_number_attribute("version", version)
-
-        publish_response = await self._publish(message_payload)
-        return publish_response
+        message_payload = SNSMessage.create_message(self, event=event,
+                                                    message=message,
+                                                    version=version,
+                                                    **message_attributes)
+        return message_payload

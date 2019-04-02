@@ -26,6 +26,12 @@ class InfraBase:
     def set_service_name(self, monkeypatch):
         monkeypatch.setattr(settings, 'SERVICE_NAME', 'xavi')
 
+    @pytest.fixture(autouse=True)
+    def set_endpoint_on_settings(self, monkeypatch, sns_endpoint_url, sqs_endpoint_url, sts_endpoint_url):
+        monkeypatch.setattr(settings, 'INIESTA_SNS_ENDPOINT_URL', sns_endpoint_url, raising=False)
+        monkeypatch.setattr(settings, 'INIESTA_SQS_ENDPOINT_URL', sqs_endpoint_url, raising=False)
+        monkeypatch.setattr(settings, 'INIESTA_STS_ENDPOINT_URL', sts_endpoint_url, raising=False)
+
     @pytest.fixture(scope='module')
     def sns_endpoint_url(self, start_local_aws):
         return start_local_aws.config.TEST_SNS_URL if self.run_local else None

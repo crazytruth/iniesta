@@ -21,6 +21,7 @@ INIESTA_SQS_RECEIVE_MESSAGE_WAIT_TIME_SECONDS = 20 # needs to be a value between
 # if ends with ".*" then filter is concerted to prefix
 # reference: https://docs.aws.amazon.com/sns/latest/dg/sns-subscription-filter-policies.html
 INIESTA_SQS_CONSUMER_FILTERS = []
+INIESTA_ASSERT_FILTER_POLICIES = True
 
 INIESTA_SNS_EVENT_KEY = 'iniesta_pass'
 
@@ -28,3 +29,7 @@ INIESTA_SQS_QUEUE_NAME_TEMPLATE = "iniesta-{env}-{service_name}"
 
 INIESTA_LOCK_RETRY_COUNT = 1
 INIESTA_LOCK_TIMEOUT = 10
+
+# mainly used for tests
+INIESTA_SQS_ENDPOINT_URL = None
+INIESTA_SNS_ENDPOINT_URL = None

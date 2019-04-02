@@ -1,24 +1,29 @@
 from . import config
+from .choices import InitializationTypes
+from .exceptions import ImproperlyConfigured
 from .listeners import IniestaListener
-
-
-class ImproperlyConfigured(Exception):
-    pass
-
+from .utils import filter_list_to_filter_policies
 
 class _Initializer(type):
 
     def __getattribute__(cls, item):
         if item.startswith('init_'):
-            if cls.initialized:
+            if cls.initialization_type is not None:
                 raise ImproperlyConfigured('Iniesta has already been initialized!')
         return super().__getattribute__(item)
 
 
 class Iniesta(metaclass=_Initializer):
 
-    initialized = False
     config_imported = False
+    initialization_type = None
+
+    @classmethod
+    def set_initialization_type(cls, value):
+        if cls.initialization_type is None:
+            cls.initialization_type = value
+        else:
+            cls.initialization_type = cls.initialization_type | value
 
     @classmethod
     def check_global_arn(cls, settings_object):
@@ -39,79 +44,70 @@ class Iniesta(metaclass=_Initializer):
             cls.config_imported = True
 
     @classmethod
-    def init_app(cls, app, *, sns_endpoint_url=None, sqs_endpoint_url=None):
-        cls._init_producer_and_polling(app, sns_endpoint_url=sns_endpoint_url,
-                                       sqs_endpoint_url=sqs_endpoint_url)
+    def init_app(cls, app):
+        cls._init_producer_and_polling(app)
 
     @classmethod
-    def _init_producer_and_polling(cls, app, *, sns_endpoint_url=None, sqs_endpoint_url=None):
+    def _init_producer_and_polling(cls, app):
         """
 
         :param app:
-        :param sns_endpoint_url:
-        :param sqs_endpoint_url:
         :return:
         """
-        cls._init_producer(app,
-                           sns_endpoint_url=sns_endpoint_url)
-        cls._init_event_polling(app,
-                                sns_endpoint_url=sns_endpoint_url,
-                                sqs_endpoint_url=sqs_endpoint_url)
+        cls._init_producer(app)
+        cls._init_event_polling(app)
 
     @classmethod
-    def init_producer(cls, app, *, sns_endpoint_url=None):
-        cls._init_producer(app, sns_endpoint_url=sns_endpoint_url)
+    def init_producer(cls, app):
+        cls._init_producer(app)
 
     @classmethod
-    def _init_producer(cls, app, *, sns_endpoint_url=None):
+    def _init_producer(cls, app):
         """
         check if global arn is set
         load configs
 
         :param app:
-        :param sns_endpoint_url:
         :return:
         """
         cls.load_config(app.config)
         # check if global arn exists
         cls.check_global_arn(app.config)
 
-        listener = IniestaListener(sns_endpoint_url=sns_endpoint_url)
+        listener = IniestaListener()
         app.register_listener(listener.after_server_start_producer_check,
                               'after_server_start')
-        cls.initialized = True
+        cls.set_initialization_type(InitializationTypes.SNS_PRODUCER)
 
     @classmethod
-    def init_queue_polling(cls, app, *, sqs_endpoint_url=None):
-        cls._init_queue_polling(app, sqs_endpoint_url=sqs_endpoint_url)
+    def init_queue_polling(cls, app):
+        cls._init_queue_polling(app)
 
     @classmethod
-    def _init_queue_polling(cls, app, *, sqs_endpoint_url=None):
+    def _init_queue_polling(cls, app):
         """
         Basic sqs queue polling without the need for checking subscriptions
         load configs
         attach listeners to check if queue exists
 
         :param app:
-        :param sqs_endpoint_url:
         :return:
         """
         cls.load_config(app.config)
 
-        listener = IniestaListener(sqs_endpoint_url=sqs_endpoint_url)
+        listener = IniestaListener()
         app.register_listener(listener.after_server_start_start_queue_polling,
                               'after_server_start')
         app.register_listener(listener.before_server_stop_stop_polling,
                               'before_server_stop')
-        cls.initialized = True
+        cls.set_initialization_type(InitializationTypes.QUEUE_POLLING)
 
     @classmethod
-    def init_event_polling(cls, app, *, sns_endpoint_url=None, sqs_endpoint_url=None):
-        cls._init_event_polling(app, sns_endpoint_url=sns_endpoint_url,
-                                sqs_endpoint_url=sqs_endpoint_url)
+    def init_event_polling(cls, app):
+        cls._init_event_polling(app)
 
     @classmethod
-    def _init_event_polling(cls, app, *, sqs_endpoint_url=None, sns_endpoint_url=None):
+    def _init_event_polling(cls, app):
         """
         # check if global arn exists
         # need to check if filters are 0 to avoid receiving all messages
@@ -123,10 +119,8 @@ class Iniesta(metaclass=_Initializer):
         check permissions
 
         :param app:
-        :param sqs_endpoint_url:
         :return:
         """
-        # TODO: need to check order of plugin vs vault
         cls.load_config(app.config)
 
         # check if global arn exists
@@ -137,43 +131,39 @@ class Iniesta(metaclass=_Initializer):
             raise ImproperlyConfigured("INIESTA_SQS_CONSUMER_FILTERS is an empty list. "
                                        "Please specifiy events to receive!")
 
-        listener = IniestaListener(sqs_endpoint_url=sqs_endpoint_url,
-                                   sns_endpoint_url=sns_endpoint_url)
+        listener = IniestaListener()
 
         app.register_listener(listener.after_server_start_event_polling,
                               'after_server_start')
         app.register_listener(listener.before_server_stop_stop_polling,
                               'before_server_stop')
-        cls.initialized = True
+        cls.set_initialization_type(InitializationTypes.EVENT_POLLING)
 
     @classmethod
-    def prepare_for_delivering_through_pass(cls, app, *, sns_endpoint_url=None):
+    def prepare_for_delivering_through_pass(cls, app):
         """
         equivalent of init_producer
 
         :param app:
-        :param sns_endpoint_url:
         :return:
         """
-        cls.init_producer(app, sns_endpoint_url=sns_endpoint_url)
+        cls.init_producer(app)
 
     @classmethod
-    def prepare_for_receiving_short_pass(cls, app, *, sqs_endpoint_url=None):
-        cls.init_queue_polling(app,
-                               sqs_endpoint_url=sqs_endpoint_url)
+    def prepare_for_receiving_short_pass(cls, app):
+        cls.init_queue_polling(app)
 
     @classmethod
-    def prepare_for_receiving_through_pass(cls, app, *,
-                                           sqs_endpoint_url=None,
-                                           sns_endpoint_url=None):
-        cls.init_event_polling(app,
-                               sqs_endpoint_url=sqs_endpoint_url,
-                               sns_endpoint_url=sns_endpoint_url)
+    def prepare_for_receiving_through_pass(cls, app):
+        cls.init_event_polling(app)
 
     @classmethod
-    def prepare_for_passing_and_receiving(cls, app, *,
-                                          sqs_endpoint_url=None,
-                                          sns_endpoint_url=None):
-        cls.init_app(app,
-                     sns_endpoint_url=sns_endpoint_url,
-                     sqs_endpoint_url=sqs_endpoint_url)
+    def prepare_for_passing_and_receiving(cls, app):
+        cls.init_app(app)
+
+    @classmethod
+    def filter_policies(cls):
+        from insanic.conf import settings
+        return filter_list_to_filter_policies(
+            settings.INIESTA_SNS_EVENT_KEY,
+            settings.INIESTA_SQS_CONSUMER_FILTERS)

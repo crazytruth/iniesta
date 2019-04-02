@@ -62,5 +62,5 @@ def reset_boto_session():
 @pytest.fixture(autouse=True)
 def reset_iniesta():
     yield
-    Iniesta.initialized = False
+    Iniesta.initialization_type = None
     Iniesta.config_imported = False

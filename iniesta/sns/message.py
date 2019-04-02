@@ -1,11 +1,16 @@
+import botocore
 import ujson as json
-
-from collections import UserDict
 
 from insanic.conf import settings
 
+from iniesta.loggers import logger, error_logger
+from iniesta.sessions import BotoSession
+from iniesta.messages import MessageAttributes
 
-class SNSMessage(UserDict):
+
+class SNSMessage(MessageAttributes):
+
+    MAX_BODY_SIZE = 1024 * 256
 
     def __init__(self, message=""):
         super().__init__()
@@ -27,7 +32,14 @@ class SNSMessage(UserDict):
     @message.setter
     def message(self, value):
         if not isinstance(value, str):
-            raise ValueError("Message must be a string.")
+            try:
+                value = json.dumps(value)
+            except:
+                raise ValueError("Message must be a string.")
+
+        if len(value.encode('utf8')) > self.MAX_BODY_SIZE:
+            raise ValueError(f"Message is too long! Max is {self.MAX_BODY_SIZE} bytes. "
+                             f"{len(value.encode('utf8'))} bytes calculated.")
 
         self['Message'] = value
 
@@ -52,63 +64,33 @@ class SNSMessage(UserDict):
 
         self['MessageStructure'] = value
 
-    @property
-    def message_attributes(self):
-        return self.get('MessageAttributes', {})
+    async def publish(self):
 
-    def add_event(self, value):
-        if not isinstance(value, str):
-            raise ValueError("Event must be a string.")
+        session = BotoSession.get_session()
+        try:
+            async with session.create_client('sns', endpoint_url=self.client.endpoint_url) as client:
+                message = await client.publish(TopicArn=self.client.topic_arn, **self)
+                logger.debug(f"[INIESTA] Published ({self.event}) with "
+                             f"the following attributes: {self}")
+                return message
+        except botocore.exceptions.ClientError as e:
+            error_logger.critical(f"[{e.response['Error']['Code']}]: {e.response['Error']['Message']}")
+            raise
+        except Exception:
+            error_logger.exception("Publishing SNS Message Failed!")
+            raise
 
-        if not value.endswith(f".{settings.SERVICE_NAME}"):
-            value = ".".join([value, settings.SERVICE_NAME])
+    @classmethod
+    def create_message(cls, client, *, event, message, version=1, **message_attributes):
 
-        self.add_string_attribute(settings.INIESTA_SNS_EVENT_KEY, value)
+        message_object = cls(message)
+        message_object.message = message
 
-    def add_attribute(self, attribute_name, attribute_value):
-        if isinstance(attribute_value, str):
-            self.add_string_attribute(attribute_name, attribute_value)
-        elif isinstance(attribute_value, (int, float)):
-            self.add_number_attribute(attribute_name, attribute_value)
-        elif isinstance(attribute_value, (list, tuple)):
-            self.add_list_attribute(attribute_name, attribute_value)
-        elif isinstance(attribute_value, bytes):
-            self.add_binary_attribute(attribute_name, attribute_value)
-        else:
-            raise ValueError("Invalid type.")
+        for ma, mv in message_attributes.items():
+            message_object.add_attribute(ma, mv)
 
-    def add_string_attribute(self, attribute_name, attribute_value):
-        if not isinstance(attribute_value, str):
-            raise ValueError("Value is not a string.")
+        message_object.add_event(event)
+        message_object.add_number_attribute('version', version)
+        message_object.client = client
 
-        self['MessageAttributes'].update({attribute_name: {
-            "DataType": "String",
-            "StringValue": attribute_value
-        }})
-
-    def add_number_attribute(self, attribute_name, attribute_value):
-        if not isinstance(attribute_value, (int, float)):
-            raise ValueError("Value is not a string.")
-
-        self['MessageAttributes'].update({attribute_name: {
-            "DataType": "Number",
-            "StringValue": str(attribute_value)
-        }})
-
-    def add_list_attribute(self, attribute_name, attribute_value):
-        if not isinstance(attribute_value, (list, tuple)):
-            raise ValueError("Value is not a list or tuple.")
-
-        self['MessageAttributes'].update({attribute_name: {
-            "DataType": "String.Array",
-            "StringValue": json.dumps(attribute_value)
-        }})
-
-    def add_binary_attribute(self, attribute_name, attribute_value):
-        if not isinstance(attribute_value, bytes):
-            raise ValueError("Value is not a list or tuple.")
-
-        self['MessageAttributes'].update({attribute_name: {
-            "DataType": "Binary",
-            "BinaryValue": attribute_value
-        }})
+        return message_object
