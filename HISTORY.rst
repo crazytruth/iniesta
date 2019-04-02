@@ -3,7 +3,7 @@
 History
 -------
 
-0.1.2 (unreleased)
+0.1.2 (2019-04-02)
 ++++++++++++++++++
 
 - FEAT: separate initialization methods for purposes
