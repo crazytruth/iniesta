@@ -7,6 +7,10 @@ from insanic.conf import settings
 
 class MessageAttributes(UserDict):
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self['MessageAttributes'] = {}
+
     @property
     def message_attributes(self):
         return self.get('MessageAttributes', {})

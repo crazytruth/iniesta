@@ -2,7 +2,7 @@
 
 """Main module."""
 
-
+import asyncio
 import click
 import importlib
 import logging
@@ -10,6 +10,9 @@ import json
 import sys
 
 from insanic.conf import settings
+
+from iniesta.sns import SNSClient
+from iniesta.sqs import SQSClient
 
 logger = logging.getLogger(__name__)
 
@@ -33,4 +36,25 @@ def filter_policies():
                                               settings.INIESTA_SQS_CONSUMER_FILTERS)
     print(json.dumps(policies))
 
+@cli.command()
+@click.option('-e', '--event', required=True, type=str, help="Event to publish into SNS")
+@click.option('-m', '--message', required=True, type=str, help="Message body to publish into SNS")
+@click.option('-v', '--version', required=False, type=int, help="Version to publish into SNS")
+def publish(event, message, version):
+    if version is None:
+        version = 1
+
+    sns_client = SNSClient()
+
+    loop = asyncio.get_event_loop()
+    message = sns_client.create_message(event=event, message=message, version=version)
+    loop.run_until_complete(message.publish())
+
+@cli.command()
+@click.option('-m', '--message', required=True, type=str, help="Message body to publish to SQS")
+def send(message):
+    loop = asyncio.get_event_loop()
+    sqs_client = loop.run_until_complete(SQSClient.initialize())
+    message = sqs_client.create_message(message=message)
+    loop.run_until_complete(message.send())
 

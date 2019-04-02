@@ -26,9 +26,13 @@ class SQSClient:
     handlers = {} # dict with {event: handler function}
     queue_urls = {} # dict with {queue_name: queue_url}
 
-    def __init__(self, queue_name, *, retry_count=None, lock_timeout=None):
-        self.queue_name = queue_name
-        self.queue_url = self.queue_urls[queue_name]
+    def __init__(self, *, queue_name=None, retry_count=None, lock_timeout=None):
+        self.queue_name = self.default_queue_name() if queue_name is None else queue_name
+        try:
+            self.queue_url = self.queue_urls[self.queue_name]
+        except KeyError:
+            error_logger.error(f"Please use initialize to initialize queue: {queue_name}")
+            raise
         self.endpoint_url = settings.INIESTA_SQS_ENDPOINT_URL
         self._filters = None
 
@@ -45,7 +49,14 @@ class SQSClient:
         )
 
     @classmethod
-    async def initialize(cls, *, queue_name):
+    def default_queue_name(cls):
+        return settings.INIESTA_SQS_QUEUE_NAME_TEMPLATE.format(
+            env=settings.MMT_ENV,
+            service_name=settings.SERVICE_NAME
+        )
+
+    @classmethod
+    async def initialize(cls, *, queue_name=None):
         """
         the sns topic this queue is subscribed to
 
@@ -55,6 +66,9 @@ class SQSClient:
         """
         session = BotoSession.get_session()
         endpoint_url = settings.INIESTA_SQS_ENDPOINT_URL
+
+        if queue_name is None:
+            queue_name = cls.default_queue_name()
 
         # check if queue exists
         if queue_name not in cls.queue_urls:
@@ -69,7 +83,7 @@ class SQSClient:
                 queue_url = response['QueueUrl']
                 cls.queue_urls.update({queue_name: queue_url})
 
-        sqs_client = cls(queue_name)
+        sqs_client = cls(queue_name=queue_name)
 
         # check if subscription exists
         # await cls._confirm_subscription(sqs_client, topic_arn, endpoint_url)
@@ -80,11 +94,12 @@ class SQSClient:
 
         sns_client = SNSClient(topic_arn)
         subscriptions = sns_client.list_subscriptions_by_topic()
+        subscription_list = []
         async for subs in subscriptions:
+            subscription_list.append(subs)
             if self.queue_name in subs.get('Endpoint', "").split(":"):
                 service_subscriptions = subs
                 break
-
         else:
             raise EnvironmentError(f"Unable to find subscription for {settings.SERVICE_NAME}")
 
@@ -209,7 +224,6 @@ class SQSClient:
                          f"receipt_handle={message.receipt_handle}")
         return resp
 
-
     async def _poll(self):
 
         session = BotoSession.get_session()
@@ -259,7 +273,7 @@ class SQSClient:
         finally:
             await client.close()
 
-        return "Shutdown"
+        return "Shutdown" # pragma: no cover
 
     @classmethod
     def handler(cls, arg=None):
@@ -269,7 +283,7 @@ class SQSClient:
             return arg
         else:
             def register_handler(func):
-                cls.add_handler(func, arg)
+                cls.add_handler(func, default if arg is None else arg)
                 return func
 
             return register_handler
@@ -288,5 +302,14 @@ class SQSClient:
                 "in the {0}() route?".format(handler.__name__)
             )
 
-    async def hook_post_receive_message_handler(self):
+    async def hook_post_receive_message_handler(self): # pragma: no cover
         pass
+
+    def create_message(self, message):
+        return SQSMessage(self, message)
+
+
+
+
+
+

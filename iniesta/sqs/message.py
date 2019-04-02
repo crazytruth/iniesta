@@ -17,6 +17,11 @@ VALID_SEND_MESSAGE_ARGS = [
     'MessageGroupId'
 ]
 
+ERROR_MESSAGES = {
+    "delay_seconds_out_of_bounds": 'Delay Seconds must be between 0 and 900 inclusive. Got {value}.',
+    "delay_seconds_type_error": 'Delay Seconds must be an integer. Got {value}.'
+}
+
 class SQSMessage(MessageAttributes):
 
     def __init__(self, client, message):
@@ -41,11 +46,6 @@ class SQSMessage(MessageAttributes):
             message_object.attributes = message['Attributes']
 
             message_object['MessageAttributes'] = message.get('MessageAttributes', {})
-
-            try:
-                message_object.body = json.loads(message_object['MessageBody'])
-            except ValueError:
-                message_object.body = message_object['MessageBody']
         except KeyError as e:
             raise ValueError(f"SQS Message is invalid: {e.args[0]}")
         else:
@@ -64,9 +64,9 @@ class SQSMessage(MessageAttributes):
     @delay_seconds.setter
     def delay_seconds(self, value):
         if not isinstance(value, int):
-            raise ValueError(f'Delay Seconds must be an integer. Got {value}.')
+            raise TypeError(ERROR_MESSAGES['delay_seconds_type_error'].format(value=value))
         elif value < 0 or value > 900:
-            raise ValueError(f'Delay Seconds must be between 0 and 900 inclusive. Got {value}.')
+            raise ValueError(ERROR_MESSAGES['delay_seconds_out_of_bounds'].format(value=value))
 
         self['DelaySeconds'] = value
 
@@ -75,18 +75,25 @@ class SQSMessage(MessageAttributes):
         return self['MessageBody']
 
     @property
+    def body(self):
+        try:
+            return json.loads(self.raw_body)
+        except ValueError:
+            return self.raw_body
+
+    @property
     def event(self):
-        return self.message_attributes[settings.INIESTA_SNS_EVENT_KEY]['StringValue']
+        return self.message_attributes[settings.INIESTA_SNS_EVENT_KEY]
 
     def checksum_body(self):
         return hashlib.md5(self['MessageBody'].encode('utf-8')).hexdigest() == self.md5_of_body
 
-    @staticmethod
-    def _unpack_message_attributes(message_attributes):
+    @property
+    def message_attributes(self):
 
         _message_attributes = {}
 
-        for attribute, attribute_value in message_attributes.items():
+        for attribute, attribute_value in self['MessageAttributes'].items():
             data_type = attribute_value['DataType'].split('.', 1)[0]
 
             if data_type == "Number":
@@ -96,9 +103,6 @@ class SQSMessage(MessageAttributes):
 
         return _message_attributes
 
-    # @classmethod
-    # def create_message(cls, ):
-
     async def send(self):
         session = BotoSession.get_session()
         try:
@@ -107,7 +111,10 @@ class SQSMessage(MessageAttributes):
                 message = await client.send_message(QueueUrl=self.client.queue_url,
                                                     **{k:v for k,v in self.items()
                                                        if k in VALID_SEND_MESSAGE_ARGS})
-                return message
+
+                self.message_id = message['MessageId']
+                self.md5_of_body = message['MD5OfMessageBody']
+                return self
         except botocore.exceptions.ClientError as e:
             error_logger.critical(f"[{e.response['Error']['Code']}]: {e.response['Error']['Message']}")
             raise
