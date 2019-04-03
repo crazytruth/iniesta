@@ -6,7 +6,7 @@ History
 0.1.5 (unreleased)
 ++++++++++++++++++
 
-- Nothing changed yet.
+- FEAT: update commands to not explicitly load application
 
 
 0.1.4 (2019-04-03)

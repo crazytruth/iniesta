@@ -23,7 +23,6 @@ test_requires = [
     "coverage",
     'pytest',
     "pytest-cov",
-    # 'pytest-asyncio',
     'pytest-redis',
     'pytest-sanic',
     'pytest-cov',
