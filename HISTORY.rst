@@ -3,7 +3,7 @@
 History
 -------
 
-0.1.3 (unreleased)
+0.1.4 (unreleased)
 ++++++++++++++++++
 
 - REFACTOR: commands to within iniesta package
