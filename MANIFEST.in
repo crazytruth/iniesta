@@ -1,7 +1,6 @@
 global-exclude *.py[co]
 global-exclude __pycache__
 recursive-include iniesta *.py
-recursive-include iniesta_commands *.py
 include AUTHORS.rst
 include CONTRIBUTING.rst
 include HISTORY.rst

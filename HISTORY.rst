@@ -6,7 +6,7 @@ History
 0.1.3 (unreleased)
 ++++++++++++++++++
 
-- Nothing changed yet.
+- REFACTOR: commands to within iniesta package
 
 
 0.1.2 (2019-04-02)

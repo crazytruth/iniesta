@@ -41,6 +41,7 @@ def filter_policies():
 @click.option('-m', '--message', required=True, type=str, help="Message body to publish into SNS")
 @click.option('-v', '--version', required=False, type=int, help="Version to publish into SNS")
 def publish(event, message, version):
+    # TODO: documentation for read me
     if version is None:
         version = 1
 
@@ -53,6 +54,7 @@ def publish(event, message, version):
 @cli.command()
 @click.option('-m', '--message', required=True, type=str, help="Message body to publish to SQS")
 def send(message):
+    # TODO: documentation for read me
     loop = asyncio.get_event_loop()
     sqs_client = loop.run_until_complete(SQSClient.initialize())
     message = sqs_client.create_message(message=message)
