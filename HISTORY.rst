@@ -7,6 +7,7 @@ History
 ++++++++++++++++++
 
 - CHORE: MO documentations!!!
+- REFACTOR: change extra requires from ``deploy`` to ``cli``
 
 
 0.1.6 (2019-04-04)
