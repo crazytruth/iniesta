@@ -57,7 +57,7 @@ setup(
     zip_safe=False,
     keywords='iniesta',
     extras_require={
-        "development": test_requires,
+        "development": test_requires + ['sphinx', 'sphinx_rtd_theme'],
         "release": ["zest.releaser[recommended]", "flake8"],
         "deploy": ["Click>=6.0"]
     },

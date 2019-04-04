@@ -42,18 +42,25 @@ class _Iniesta(object):
             self.config_imported = True
 
     def init_app(self, app):
+        """
+        Initializes the application with producing and event polling.
+
+        :param app: An instance of an insanic application
+        """
         self._init_producer_and_polling(app)
 
     def _init_producer_and_polling(self, app):
-        """
-
-        :param app:
-        :return:
-        """
         self._init_producer(app)
         self._init_event_polling(app)
 
     def init_producer(self, app):
+        """
+        Initializes the application with only SNS producing capabilities.
+        Checks if the global sns arn exists. If not fails running of application.
+
+        :param app:
+        :return:
+        """
         self._init_producer(app)
 
     def _init_producer(self, app):
@@ -76,6 +83,12 @@ class _Iniesta(object):
         self.set_initialization_type(InitializationTypes.SNS_PRODUCER)
 
     def init_queue_polling(self, app):
+        """
+        Initializes the application with only SQS queue polling capabilities
+
+        :param app:
+        :return:
+        """
         self._init_queue_polling(app)
 
     def _init_queue_polling(self, app):

@@ -10,7 +10,7 @@ iniesta
 
 Messaging integration for insanic
 
-.. image:: iniesta.png
+.. image:: docs/_static/iniesta.png
 
 Why?
 ----
