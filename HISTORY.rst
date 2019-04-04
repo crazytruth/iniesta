@@ -3,7 +3,7 @@
 History
 -------
 
-0.1.6 (unreleased)
+0.1.6 (2019-04-04)
 ++++++++++++++++++
 
 - FIX: fixes SQS message so it return None if key doesn't exist
