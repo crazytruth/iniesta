@@ -13,6 +13,9 @@ Contents:
 
    installation
    usage
+   handlers
+   commands
+   references
    contributing
    authors
    history

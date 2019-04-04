@@ -3,10 +3,18 @@
 History
 -------
 
-0.1.6 (unreleased)
+0.1.7 (unreleased)
 ++++++++++++++++++
 
-- Nothing changed yet.
+- CHORE: MO documentations!!!
+- REFACTOR: change extra requires from ``deploy`` to ``cli``
+
+
+0.1.6 (2019-04-04)
+++++++++++++++++++
+
+- FIX: fixes SQS message so it return None if key doesn't exist
+- CHORE: includes various sphinx documentation
 
 
 0.1.5 (2019-04-04)

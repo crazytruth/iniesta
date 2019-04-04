@@ -42,18 +42,25 @@ class _Iniesta(object):
             self.config_imported = True
 
     def init_app(self, app):
+        """
+        Initializes the application with producing and event polling.
+
+        :param app: An instance of an insanic application
+        """
         self._init_producer_and_polling(app)
 
     def _init_producer_and_polling(self, app):
-        """
-
-        :param app:
-        :return:
-        """
         self._init_producer(app)
         self._init_event_polling(app)
 
     def init_producer(self, app):
+        """
+        Initializes the application with only SNS producing capabilities.
+        Checks if the global sns arn exists. If not fails running of application.
+
+        :param app: An instance of an insanic application
+        :return:
+        """
         self._init_producer(app)
 
     def _init_producer(self, app):
@@ -76,17 +83,17 @@ class _Iniesta(object):
         self.set_initialization_type(InitializationTypes.SNS_PRODUCER)
 
     def init_queue_polling(self, app):
+        """
+        Basic sqs queue polling without the need for checking subscriptions
+        Load configs
+        Attach listeners to check if queue exists
+
+        :param app: An instance of an insanic application
+        """
         self._init_queue_polling(app)
 
     def _init_queue_polling(self, app):
-        """
-        Basic sqs queue polling without the need for checking subscriptions
-        load configs
-        attach listeners to check if queue exists
 
-        :param app:
-        :return:
-        """
         self.load_config(app.config)
         if not app.config.INIESTA_DRY_RUN:
             listener = IniestaListener()
@@ -97,22 +104,21 @@ class _Iniesta(object):
         self.set_initialization_type(InitializationTypes.QUEUE_POLLING)
 
     def init_event_polling(self, app):
+        """
+        Check if global arn exists
+        Need to check if filters are 0 to avoid receiving all messages
+        Load configs
+        Attaches listeners
+        Check if queue exists (initialize)
+        Check subscriptions
+        Check permissions
+
+        :param app: An instance of an insanic application
+        """
         self._init_event_polling(app)
 
     def _init_event_polling(self, app):
-        """
-        # check if global arn exists
-        # need to check if filters are 0 to avoid receiving all messages
-        # load configs
 
-        - from listeners
-        check if queue exists (initialize)
-        check subscriptions
-        check permissions
-
-        :param app:
-        :return:
-        """
         self.load_config(app.config)
         if not app.config.INIESTA_DRY_RUN:
             # check if global arn exists
@@ -133,20 +139,34 @@ class _Iniesta(object):
 
     def prepare_for_delivering_through_pass(self, app):
         """
-        equivalent of init_producer
+        Alias of init_producer
 
-        :param app:
-        :return:
+        :param app: An instance of an insanic application
         """
         self.init_producer(app)
 
     def prepare_for_receiving_short_pass(self, app):
+        """
+        Alias of init_queue_polling
+
+        :param app: An instance of an insanic application
+        """
         self.init_queue_polling(app)
 
     def prepare_for_receiving_through_pass(self, app):
+        """
+        Alias of init_event_polling
+
+        :param app: An instance of an insanic application
+        """
         self.init_event_polling(app)
 
     def prepare_for_passing_and_receiving(self, app):
+        """
+        Alias of init_app
+
+        :param app: An instance of an insanic application
+        """
         self.init_app(app)
 
     def filter_policies(self):

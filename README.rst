@@ -10,7 +10,7 @@ iniesta
 
 Messaging integration for insanic
 
-.. image:: iniesta.png
+.. image:: docs/_static/iniesta.png
 
 Why?
 ----
@@ -62,6 +62,8 @@ To setup, we need a couple settings.
 - `INIESTA_LOCK_RETRY_COUNT`: (int) default:1 Lock retry count when lock is unable to be required
 - `INIESTA_LOCK_TIMEOUT`: (int) default:10s Timeout for the lock when received
 
+
+.. inclusion-marker-do-not-remove-usage-start
 
 Usage
 =====
@@ -206,22 +208,33 @@ There are two paths for handling the message
     * will NOT delete message from SQS Queue
     * message will be available again for consumption after invisibility timeout
 
+.. inclusion-marker-do-not-remove-usage-end
+
+.. inclusion-marker-do-not-remove-commands-start
+
 Commands
 ========
 
-Several commands to help with deployment.
+Several commands to help testing. All commands start with ``iniesta``
 
 Setup
 *****
 
-Requirements:
-
-- ``VAULT_ROLE_ID``
-- ``MMT_ENV``
-
 .. code-block:: bash
 
-    $ pip install iniesta[deploy]
+    $ pip install iniesta[cli]
+
+    $ iniesta --help
+    Usage: iniesta [OPTIONS] COMMAND [ARGS]...
+
+    Options:
+      --help  Show this message and exit.
+
+    Commands:
+      filter-policies
+      initialization-type
+      publish
+      send
 
 To get initialization type
 **************************
@@ -250,6 +263,47 @@ if ``INIESTA_SQS_CONSUMER_FILTERS = ['some.*']``
     $ iniesta filter-policies
     {"iniesta_pass": [{"prefix": "some."}]}
 
+Test publishing to SNS
+**********************
+
+A CLI for sending a message to SNS Topic
+
+Requirements:
+
+- ``VAULT_ROLE_ID``
+- ``MMT_ENV``
+
+.. code-block:: bash
+
+    $ iniesta publish --help
+    Usage: iniesta publish [OPTIONS]
+
+    Options:
+      -e, --event TEXT       Event to publish into SNS  [required]
+      -m, --message TEXT     Message body to publish into SNS  [required]
+      -v, --version INTEGER  Version to publish into SNS
+      --help                 Show this message and exit.
+
+Test sending message to SQS
+***************************
+
+To send a custom message to a queue
+
+Requirements:
+
+- ``VAULT_ROLE_ID``
+- ``MMT_ENV``
+
+.. code-block:: bash
+
+    $ iniesta send --help
+    Usage: iniesta send [OPTIONS]
+
+    Options:
+      -m, --message TEXT  Message body to publish to SQS  [required]
+      --help              Show this message and exit.
+
+.. inclusion-marker-do-not-remove-commands-end
 
 Development
 ===========
@@ -269,6 +323,19 @@ Testing
     $ pytest
     # with coverage
     $ pytest --cov=iniesta --cov-report term-missing:skip-covered
+
+To view documentation
+=====================
+
+.. code-block:: bash
+
+    $ git clone https://github.com/MyMusicTaste/iniesta.git
+    $ cd iniesta
+    $ pip install .[development]
+    $ cd docs
+    $ make html
+    # files will be in /path/to/iniesta/docs/_build
+
 
 Release History
 ===============
