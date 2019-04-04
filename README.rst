@@ -91,12 +91,12 @@ To produce messages:
     from iniesta.sns import SNSClient
 
     sns = SNSClient(topic_arn)
-    message = sns.publish_event(event="EventHappened", message={"id": 1}, version=1)
+    message = sns.create_message(event="EventHappened", message={"id": 1}, version=1)
     await message.publish()
 
     # or
 
-    from iniesta.sms import SNSMessage
+    from iniesta.sns import SNSMessage
 
     sns = SNSClient(topic_arn)
     message = SNSMessage.create_message(sns, event="EventHappened", message={"id": 1})
