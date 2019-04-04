@@ -13,6 +13,7 @@ Contents:
 
    installation
    usage
+   handlers
    commands
    references
    contributing
