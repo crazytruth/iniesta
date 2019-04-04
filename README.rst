@@ -66,8 +66,8 @@ To setup, we need a couple settings.
 Usage
 =====
 
-For Producing
-*************
+For Publishing Messages to SNS
+******************************
 
 For services that only need to produce SNS messages:
 
@@ -91,12 +91,37 @@ To produce messages:
     from iniesta.sns import SNSClient
 
     sns = SNSClient(topic_arn)
-    sns.publish_event(event="EventHappened", message={"id": 1},
-                      version=1)
+    message = sns.publish_event(event="EventHappened", message={"id": 1}, version=1)
+    await message.publish()
+
+    # or
+
+    from iniesta.sms import SNSMessage
+
+    sns = SNSClient(topic_arn)
+    message = SNSMessage.create_message(sns, event="EventHappened", message={"id": 1})
+    await message.publish()
+
 
 This will publish a message to SNS with the event specified in the parameters.
 The published event will be `{event}.{service_name}`. Even if you don't send the service_name,
 it will automatically be appended.
+
+For "SEND"ing messages to SQS
+*****************************
+
+Iniesta also allows messages to be sent to specific queues.
+
+To send messages we first need to create a ``SQSMessage`` object.
+
+.. code-block:: python
+
+    from iniesta.sqs import SQSClient
+
+    sqs = SQSClient() # if queue name is not specified it uses the services's default queue
+    message = sqs.create_message(message="Hello") # returns SQSMessage instance
+    await message.send()
+
 
 For Consuming
 *************
