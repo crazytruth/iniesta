@@ -23,7 +23,6 @@ test_requires = [
     "coverage",
     'pytest',
     "pytest-cov",
-    # 'pytest-asyncio',
     'pytest-redis',
     'pytest-sanic',
     'pytest-cov',
@@ -35,7 +34,7 @@ test_requires = [
     "requests",
 ]
 
-version = '0.1.3.dev0'
+version = '0.1.6.dev0'
 
 setup(
     name='iniesta',
@@ -69,14 +68,9 @@ setup(
         'Natural Language :: English',
         'Programming Language :: Python :: 3.6',
     ],
-    # entry_points={
-    #     'console_scripts': [
-    #         'iniesta=commands.iniesta:cli',
-    #     ],
-    # },
     entry_points={
         'console_scripts': [
-            'iniesta=iniesta_commands.commands:cli',
+            'iniesta=iniesta.cli:cli',
         ],
     },
 )

@@ -3,10 +3,22 @@
 History
 -------
 
-0.1.3 (unreleased)
+0.1.6 (unreleased)
 ++++++++++++++++++
 
 - Nothing changed yet.
+
+
+0.1.5 (2019-04-04)
+++++++++++++++++++
+
+- FEAT: update commands to not explicitly load application
+
+
+0.1.4 (2019-04-03)
+++++++++++++++++++
+
+- REFACTOR: commands to within iniesta package
 
 
 0.1.2 (2019-04-02)
