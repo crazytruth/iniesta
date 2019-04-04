@@ -83,7 +83,7 @@ class SQSMessage(MessageAttributes):
 
     @property
     def event(self):
-        return self.message_attributes[settings.INIESTA_SNS_EVENT_KEY]
+        return self.message_attributes.get(settings.INIESTA_SNS_EVENT_KEY, None)
 
     def checksum_body(self):
         return hashlib.md5(self['MessageBody'].encode('utf-8')).hexdigest() == self.md5_of_body
