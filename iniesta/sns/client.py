@@ -25,7 +25,6 @@ class SNSClient:
         We needed to do this because of asyncio functionality
 
         :param topic_arn:
-        :param loop:
         :return:
         """
 
@@ -42,6 +41,7 @@ class SNSClient:
     async def _confirm_topic(cls, topic_arn):
         """
         Confirm that the topic exists
+
         :param topic_arn:
         :return:
         """

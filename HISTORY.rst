@@ -6,7 +6,7 @@ History
 0.1.7 (unreleased)
 ++++++++++++++++++
 
-- Nothing changed yet.
+- CHORE: MO documentations!!!
 
 
 0.1.6 (2019-04-04)

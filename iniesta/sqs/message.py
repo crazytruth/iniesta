@@ -36,6 +36,14 @@ class SQSMessage(MessageAttributes):
 
     @classmethod
     def from_sqs(cls, client, message):
+        """
+        A helper method that unpacks everything from receive_message
+
+        :param client: SQSClient instance from which the message came from
+        :param message: The dict from receive_message
+        :type message: dict
+        :return:
+        """
 
         try:
             message_object = cls(client, message['Body'])
@@ -104,6 +112,11 @@ class SQSMessage(MessageAttributes):
         return _message_attributes
 
     async def send(self):
+        """
+        Sends the message to the queue defined in client
+
+        :return:
+        """
         session = BotoSession.get_session()
         try:
             async with session.create_client('sqs',

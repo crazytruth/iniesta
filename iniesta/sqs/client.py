@@ -27,6 +27,15 @@ class SQSClient:
     queue_urls = {} # dict with {queue_name: queue_url}
 
     def __init__(self, *, queue_name=None, retry_count=None, lock_timeout=None):
+        """
+        Initializes a SQSClient instance
+
+        :param queue_name:  If None, defaults to INIESTA_SQS_QUEUE_NAME_TEMPLATE
+        :param retry_count: retry count for aioredlock, defaults to ``INIESTA_LOCK_RETRY_COUNT``
+        :param lock_timeout: lock timeout for aioredlock. Defaults to ``INIESTA_LOCK_TIMEOUT``
+
+        :raise KeyError: If application was not initialized with one of the initialization methods.
+        """
         self.queue_name = self.default_queue_name() if queue_name is None else queue_name
         try:
             self.queue_url = self.queue_urls[self.queue_name]
@@ -58,11 +67,11 @@ class SQSClient:
     @classmethod
     async def initialize(cls, *, queue_name=None):
         """
-        the sns topic this queue is subscribed to
+        The initialization classmethod that should be first run before any subsequent SQSClient initializations.
 
-        :param sns_client:
-        :param queue_name:
+        :param queue_name: queue_name if want to initialize client with a different queue
         :return:
+        :rtype: SQSClient instance
         """
         session = BotoSession.get_session()
         endpoint_url = settings.INIESTA_SQS_ENDPOINT_URL
@@ -91,6 +100,11 @@ class SQSClient:
         return sqs_client
 
     async def confirm_subscription(self, topic_arn):
+        """
+        Confirms the correct subscriptions are in place in AWS SNS
+
+        :param topic_arn: Topic to check subscriptions for
+        """
 
         sns_client = SNSClient(topic_arn)
         subscriptions = sns_client.list_subscriptions_by_topic()
@@ -112,7 +126,10 @@ class SQSClient:
             assert json.loads(subscription_attributes['Attributes'].get('FilterPolicy', '{}')) \
                    == self.filters
 
-    async def confirm_permission(self, topic_arn):
+    async def confirm_permission(self):
+        """
+        Confirms correct permissions are in place.
+        """
         session = BotoSession.get_session()
 
         async with session.create_client('sqs', endpoint_url=self.endpoint_url) as client:
@@ -142,6 +159,11 @@ class SQSClient:
         return self._filters
 
     def start_receiving_messages(self, loop=None):
+        """
+        Method to start polling for messages.
+
+        :param loop: Instance of event loop
+        """
         self._receive_messages = True
 
         if loop is None:
@@ -151,16 +173,23 @@ class SQSClient:
         self._loop = loop
 
     async def stop_receiving_messages(self):
+        """
+        Method to stop polling
+        """
         self._receive_messages = False
         self._polling_task.cancel()
         await self.lock_manager.destroy()
 
     async def handle_message(self, message):
         """
+        Method that hold logic to handle a certain type of mesage
 
-        :param message:
+        :param message: Message to handle
         :type message: instance of SQSMessage
-        :return:
+        :raises LockError: If lock could not be acquired for the message
+        :raises Exception: General exception handler attaches the message and message handler
+        :return: Returns a tuple of the message and result of the handler
+        :rtype: tuple
         """
         lock = None
 
@@ -213,6 +242,13 @@ class SQSClient:
         error_logger.critical(f"[INIESTA] Error while handling message: {str(exc)}", exc_info=exc, extra=extra)
 
     async def handle_success(self, client, message):
+        """
+        Success handler for a message. Deletes the message from SQS.
+
+        :param client: aws sqs client
+        :param message: SQSMessage Object
+        :return: Returns the response of the delete_message request.
+        """
 
         # if success must delete message from sqs
         logger.info(f"[INIESTA] Message handled successfully: msg_id={message.message_id}")
@@ -277,6 +313,12 @@ class SQSClient:
 
     @classmethod
     def handler(cls, arg=None):
+        """
+        Decorator for attaching a message handler for an event or if None, a default handler.
+
+        :param arg:
+        :return:
+        """
 
         if arg and isfunction(arg):
             cls.add_handler(arg, default)
@@ -290,6 +332,13 @@ class SQSClient:
 
     @classmethod
     def add_handler(cls, handler, event):
+        """
+        Method for manually declaring a handler for an event.
+
+        :param handler: a function to execute
+        :param event: the event the function is attached to
+        :return:
+        """
         if event in cls.handlers.keys():
             raise ValueError(f"Handler for event [{event}] already exists.")
 
@@ -306,6 +355,14 @@ class SQSClient:
         pass
 
     def create_message(self, message):
+        """
+        A helper method to create an SQSMessage
+
+        :param message: The message body.
+        :type mesage: str or json dumpable object
+        :return: SQSMessage instance
+        :rtype: SQSMessage
+        """
         return SQSMessage(self, message)
 
 

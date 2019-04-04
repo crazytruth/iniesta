@@ -13,6 +13,7 @@ Contents:
 
    installation
    usage
+   commands
    references
    contributing
    authors

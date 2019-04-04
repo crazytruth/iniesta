@@ -65,6 +65,11 @@ class SNSMessage(MessageAttributes):
         self['MessageStructure'] = value
 
     async def publish(self):
+        """
+        Publishes this message to SNS.
+
+        :return: returns the response of the publish request
+        """
 
         session = BotoSession.get_session()
         try:
@@ -82,6 +87,22 @@ class SNSMessage(MessageAttributes):
 
     @classmethod
     def create_message(cls, client, *, event, message, version=1, **message_attributes):
+        """
+        Helper method to initialize an event message.
+
+        :param client: The initialized SNSClient
+        :type client: SNSClient
+        :param event: The event this message will publish
+        :type event: string
+        :param message: The message body to include
+        :type message: str or json dumpable object
+        :param version: Version
+        :type version: int
+        :param message_attributes: Any message attributes
+        :type message_attributes: dict
+        :return: instantiated message
+        :rtype: SNSMessage
+        """
 
         message_object = cls(message)
         message_object.message = message
