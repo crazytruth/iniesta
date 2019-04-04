@@ -6,7 +6,8 @@ History
 0.1.6 (unreleased)
 ++++++++++++++++++
 
-- Nothing changed yet.
+- FIX: fixes SQS message so it return None if key doesn't exist
+- CHORE: includes various sphinx documentation
 
 
 0.1.5 (2019-04-04)
