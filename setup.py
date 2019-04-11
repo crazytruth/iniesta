@@ -44,7 +44,7 @@ setup(
     author='Kwang Jin Kim',
     author_email='david@mymusictaste.com',
     url='https://github.com/MyMusicTate/iniesta',
-    packages=find_packages(include=['iniesta',]),
+    packages=find_packages(include=['iniesta',], exclude=['docs', 'tests']),
     # package_dir={'iniesta': 'iniesta', 'commands': 'commands'},
     include_package_data=True,
     install_requires=[
