@@ -3,7 +3,7 @@
 History
 -------
 
-0.1.7 (unreleased)
+0.1.7 (2019-04-11)
 ++++++++++++++++++
 
 - FEAT: allow aws credentials to be loaded from settings. ``INIESTA_AWS_ACCESS_KEY_ID`` and ``INIESTA_AWS_SECRET_ACCESS_KEY``

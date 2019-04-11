@@ -34,7 +34,7 @@ test_requires = [
     "requests",
 ]
 
-version = '0.1.7.dev0'
+version = '0.1.7'
 
 setup(
     name='iniesta',
