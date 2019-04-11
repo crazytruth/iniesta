@@ -8,6 +8,7 @@ History
 
 - CHORE: MO documentations!!!
 - REFACTOR: change extra requires from ``deploy`` to ``cli``
+- FEAT: allow aws credentials to be loaded from settings. ``INIESTA_AWS_ACCESS_KEY_ID`` and ``INIESTA_AWS_SECRET_ACCESS_KEY``
 
 
 0.1.6 (2019-04-04)

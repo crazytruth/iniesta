@@ -120,7 +120,10 @@ class SQSMessage(MessageAttributes):
         session = BotoSession.get_session()
         try:
             async with session.create_client('sqs',
-                                             endpoint_url=self.client.endpoint_url) as client:
+                                             endpoint_url=self.client.endpoint_url,
+                                             aws_access_key_id=settings.INIESTA_AWS_ACCESS_KEY_ID,
+                                             aws_secret_access_key=settings.INIESTA_AWS_SECRET_ACCESS_KEY
+                                             ) as client:
                 message = await client.send_message(QueueUrl=self.client.queue_url,
                                                     **{k:v for k,v in self.items()
                                                        if k in VALID_SEND_MESSAGE_ARGS})
