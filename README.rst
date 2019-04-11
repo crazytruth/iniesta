@@ -345,4 +345,4 @@ View release history `here <HISTORY.rst>`_
 TODO
 ----
 
-* send message straight to sqs
+

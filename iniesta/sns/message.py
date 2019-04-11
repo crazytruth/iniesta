@@ -73,7 +73,10 @@ class SNSMessage(MessageAttributes):
 
         session = BotoSession.get_session()
         try:
-            async with session.create_client('sns', endpoint_url=self.client.endpoint_url) as client:
+            async with session.create_client('sns', endpoint_url=self.client.endpoint_url,
+                                             aws_access_key_id=settings.INIESTA_AWS_ACCESS_KEY_ID,
+                                             aws_secret_access_key=settings.INIESTA_AWS_SECRET_ACCESS_KEY
+                                             ) as client:
                 message = await client.publish(TopicArn=self.client.topic_arn, **self)
                 logger.debug(f"[INIESTA] Published ({self.event}) with "
                              f"the following attributes: {self}")

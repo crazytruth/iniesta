@@ -47,7 +47,9 @@ class SNSClient:
         """
         session = BotoSession.get_session()
 
-        async with session.create_client('sns', endpoint_url=settings.INIESTA_SNS_ENDPOINT_URL) as client:
+        async with session.create_client('sns', endpoint_url=settings.INIESTA_SNS_ENDPOINT_URL,
+                                         aws_access_key_id=settings.INIESTA_AWS_ACCESS_KEY_ID,
+                                         aws_secret_access_key=settings.INIESTA_AWS_SECRET_ACCESS_KEY) as client:
             await client.get_topic_attributes(TopicArn=topic_arn)
 
     async def _list_subscriptions_by_topic(self, next_token=None):
@@ -59,7 +61,9 @@ class SNSClient:
             query_args.update({"NextToken": next_token})
 
         try:
-            async with session.create_client('sns', endpoint_url=self.endpoint_url) as client:
+            async with session.create_client('sns', endpoint_url=self.endpoint_url,
+                                             aws_access_key_id=settings.INIESTA_AWS_ACCESS_KEY_ID,
+                                             aws_secret_access_key=settings.INIESTA_AWS_SECRET_ACCESS_KEY) as client:
                 return await client.list_subscriptions_by_topic(**query_args)
         except botocore.exceptions.ClientError as e:
             error_message = f"[{e.response['Error']['Code']}]: {e.response['Error']['Message']} {self.topic_arn}"
@@ -91,7 +95,10 @@ class SNSClient:
 
     async def get_subscription_attributes(self, subscription_arn):
 
-        async with BotoSession.get_session().create_client('sns', endpoint_url=self.endpoint_url) as client:
+        async with BotoSession.get_session().create_client(
+                'sns', endpoint_url=self.endpoint_url,
+                aws_access_key_id=settings.INIESTA_AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=settings.INIESTA_AWS_SECRET_ACCESS_KEY) as client:
             return await client.get_subscription_attributes(SubscriptionArn=subscription_arn)
 
     def create_message(self, *, event, message, version=1, **message_attributes):

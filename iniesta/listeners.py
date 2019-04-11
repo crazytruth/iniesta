@@ -48,9 +48,7 @@ class IniestaListener:
             app.config.INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN,
 
         )
-        await app.messi.confirm_permission(
-            app.config.INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN
-        )
+        await app.messi.confirm_permission()
 
         self._start_polling(app)
 

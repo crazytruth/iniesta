@@ -82,7 +82,9 @@ class SQSClient:
         # check if queue exists
         if queue_name not in cls.queue_urls:
             try:
-                async with session.create_client('sqs', endpoint_url=endpoint_url) as client:
+                async with session.create_client('sqs', endpoint_url=endpoint_url,
+                                                 aws_access_key_id=settings.INIESTA_AWS_ACCESS_KEY_ID,
+                                                 aws_secret_access_key=settings.INIESTA_AWS_SECRET_ACCESS_KEY) as client:
                     response = await client.get_queue_url(QueueName=queue_name)
             except botocore.exceptions.ClientError as e:
                 error_message = f"[{e.response['Error']['Code']}]: {e.response['Error']['Message']} {queue_name}"
@@ -132,7 +134,9 @@ class SQSClient:
         """
         session = BotoSession.get_session()
 
-        async with session.create_client('sqs', endpoint_url=self.endpoint_url) as client:
+        async with session.create_client('sqs', endpoint_url=self.endpoint_url,
+                                         aws_access_key_id=settings.INIESTA_AWS_ACCESS_KEY_ID,
+                                         aws_secret_access_key=settings.INIESTA_AWS_SECRET_ACCESS_KEY) as client:
             policy_attributes = await client.get_queue_attributes(
                 QueueUrl=self.queue_url,
                 AttributeNames=['Policy']
@@ -263,7 +267,9 @@ class SQSClient:
     async def _poll(self):
 
         session = BotoSession.get_session()
-        client = session.create_client('sqs', endpoint_url=self.endpoint_url)
+        client = session.create_client('sqs', endpoint_url=self.endpoint_url,
+                                       aws_access_key_id=settings.INIESTA_AWS_ACCESS_KEY_ID,
+                                       aws_secret_access_key=settings.INIESTA_AWS_SECRET_ACCESS_KEY)
 
         try:
             while self._loop.is_running() and self._receive_messages:
