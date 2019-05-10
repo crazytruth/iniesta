@@ -121,8 +121,8 @@ class SQSMessage(MessageAttributes):
         try:
             async with session.create_client('sqs',
                                              endpoint_url=self.client.endpoint_url,
-                                             aws_access_key_id=settings.INIESTA_AWS_ACCESS_KEY_ID,
-                                             aws_secret_access_key=settings.INIESTA_AWS_SECRET_ACCESS_KEY
+                                             aws_access_key_id=BotoSession.aws_access_key_id,
+                                             aws_secret_access_key=BotoSession.aws_secret_access_key
                                              ) as client:
                 message = await client.send_message(QueueUrl=self.client.queue_url,
                                                     **{k:v for k,v in self.items()
