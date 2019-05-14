@@ -25,3 +25,8 @@ class BotoSession:
 
     aws_access_key_id = AWSCredentials('AWS_ACCESS_KEY_ID')
     aws_secret_access_key = AWSCredentials('AWS_SECRET_ACCESS_KEY')
+
+    @classmethod
+    def reset_aws_credentials(cls):
+        cls.aws_access_key_id = AWSCredentials('AWS_ACCESS_KEY_ID')
+        cls.aws_secret_access_key = AWSCredentials('AWS_SECRET_ACCESS_KEY')

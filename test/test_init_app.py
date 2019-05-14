@@ -218,16 +218,3 @@ class TestInitializeWithSNS(SNSInfra):
         assert exc_info
         assert isinstance(exc_info.value, EnvironmentError)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
