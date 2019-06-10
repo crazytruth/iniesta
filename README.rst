@@ -116,11 +116,26 @@ Iniesta also allows messages to be sent to specific queues.
 
 To send messages we first need to create a ``SQSMessage`` object.
 
+Prerequisite:
+#############
+
+- If using default queue, skip to actual usage.
+- If not using default queue, SQSClient must have been initialized at least once for the queue. (recommend to do on listener `after_server_start`)
+
 .. code-block:: python
 
     from iniesta.sqs import SQSClient
 
-    sqs = SQSClient() # if queue name is not specified it uses the services's default queue
+    sqs = await SQSClient.initialize(queue_name="something")
+
+Actual Usage:
+#############
+
+.. code-block:: python
+
+    from iniesta.sqs import SQSClient
+
+    sqs = SQSClient(queue_name="something") # if queue name is not specified it uses the services's default queue
     message = sqs.create_message(message="Hello") # returns SQSMessage instance
     await message.send()
 
