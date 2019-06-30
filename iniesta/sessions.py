@@ -2,8 +2,8 @@ import aiobotocore
 from insanic.conf import settings
 from insanic.functional import empty
 
-class AWSCredentials(object):
 
+class AWSCredentials(object):
     def __init__(self, type):
         self.value = empty
         self.type = type

@@ -308,4 +308,3 @@ class TestSNSClient(SNSInfra):
 
         assert attributes['Attributes']['TopicArn'] == create_global_sns['TopicArn']
         assert attributes['Attributes']['Protocol'] == 'sqs'
-

@@ -2,6 +2,7 @@ import boto3
 import pytest
 
 from iniesta import Iniesta
+from iniesta.sessions import BotoSession
 from iniesta.sqs import SQSClient, SQSMessage
 from iniesta.sqs.message import ERROR_MESSAGES
 
@@ -10,7 +11,6 @@ from .infra import SQSInfra
 
 class TestSQSMessage(SQSInfra):
     queue_name = "iniesta-test-xavi"
-    run_local = False
 
     @pytest.fixture
     def sqs_client(self, insanic_application, create_service_sqs, sqs_endpoint_url):
@@ -19,7 +19,6 @@ class TestSQSMessage(SQSInfra):
         sqs_client = SQSClient()
 
         return sqs_client
-
 
     def test_initialize(self, sqs_client):
         message = SQSMessage(sqs_client, "message")
@@ -80,9 +79,7 @@ class TestSQSMessage(SQSInfra):
                 match=ERROR_MESSAGES['delay_seconds_out_of_bounds'].format(value=-1)):
             message.delay_seconds = -1
 
-
     async def test_send(self, create_service_sqs, sqs_client):
-
         import uuid
         random_uuid = uuid.uuid4().hex
 
@@ -98,7 +95,9 @@ class TestSQSMessage(SQSInfra):
 
         # try get message from queue
 
-        sqs_boto_client = boto3.client('sqs', endpoint_url=sqs_client.endpoint_url)
+        sqs_boto_client = boto3.client('sqs', region_name=sqs_client.region_name, endpoint_url=sqs_client.endpoint_url,
+                                       aws_access_key_id=BotoSession.aws_access_key_id,
+                                       aws_secret_access_key=BotoSession.aws_secret_access_key)
         sqs_message = sqs_boto_client.receive_message(
             QueueUrl=sqs_client.queue_url,
             AttributeNames=['All'],
@@ -111,6 +110,3 @@ class TestSQSMessage(SQSInfra):
         assert received_message.body == message.body == random_uuid
 
         assert received_message.message_attributes == message.message_attributes
-
-
-

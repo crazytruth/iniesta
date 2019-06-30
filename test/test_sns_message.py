@@ -141,14 +141,13 @@ class TestSNSMessage:
         with pytest.raises(ValueError, match="Value is not bytes."):
             message.add_binary_attribute('a', [])
 
-
     def test_event(self, monkeypatch):
         from insanic.conf import settings
         monkeypatch.setattr(settings, 'INIESTA_SNS_EVENT_KEY', 'event', raising=False)
 
         message = SNSMessage()
 
-        assert message.event == None
+        assert message.event is None
 
         message.add_event("do something")
         assert message.event == f"do something.{settings.SERVICE_NAME}"

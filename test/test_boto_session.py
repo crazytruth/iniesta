@@ -6,13 +6,11 @@ from iniesta.sessions import BotoSession
 
 
 class TestBotoSession:
-
     @pytest.fixture(autouse=True)
     def reset_session(self):
         yield
 
         BotoSession.reset_aws_credentials()
-
 
     def test_boto_session_singleton(self):
         session1 = BotoSession.get_session()
@@ -27,12 +25,9 @@ class TestBotoSession:
         assert BotoSession.aws_access_key_id is None
         assert BotoSession.aws_secret_access_key is None
 
-
     @pytest.mark.parametrize('access_key_id_prefix', ['iniesta', ''])
     @pytest.mark.parametrize('secret_access_key_prefix', ['iniesta', ''])
-    def test_aws_credentials_fallback(self, monkeypatch, access_key_id_prefix,
-                                     secret_access_key_prefix):
-
+    def test_aws_credentials_fallback(self, monkeypatch, access_key_id_prefix, secret_access_key_prefix):
         access_key_id = uuid.uuid4()
         secret_access_key = uuid.uuid4()
 
@@ -53,7 +48,6 @@ class TestBotoSession:
         else:
             assert BotoSession.aws_access_key_id == access_key_id
 
-
         if secret_access_key_prefix:
             iniesta_secret_access_key = uuid.uuid4()
 
@@ -68,6 +62,3 @@ class TestBotoSession:
 
         assert BotoSession.aws_access_key_id is not None
         assert BotoSession.aws_secret_access_key is not None
-
-
-

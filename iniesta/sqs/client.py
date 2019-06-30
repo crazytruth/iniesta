@@ -42,6 +42,7 @@ class SQSClient:
         except KeyError:
             error_logger.error(f"Please use initialize to initialize queue: {queue_name}")
             raise
+        self.region_name = settings.INIESTA_SQS_REGION_NAME
         self.endpoint_url = settings.INIESTA_SQS_ENDPOINT_URL
         self._filters = None
 
@@ -74,6 +75,7 @@ class SQSClient:
         :rtype: SQSClient instance
         """
         session = BotoSession.get_session()
+        region_name = settings.INIESTA_SQS_REGION_NAME
         endpoint_url = settings.INIESTA_SQS_ENDPOINT_URL
 
         if queue_name is None:
@@ -82,7 +84,7 @@ class SQSClient:
         # check if queue exists
         if queue_name not in cls.queue_urls:
             try:
-                async with session.create_client('sqs', endpoint_url=endpoint_url,
+                async with session.create_client('sqs', region_name=region_name, endpoint_url=endpoint_url,
                                                  aws_access_key_id=BotoSession.aws_access_key_id,
                                                  aws_secret_access_key=BotoSession.aws_secret_access_key) as client:
                     response = await client.get_queue_url(QueueName=queue_name)
@@ -133,8 +135,7 @@ class SQSClient:
         Confirms correct permissions are in place.
         """
         session = BotoSession.get_session()
-
-        async with session.create_client('sqs', endpoint_url=self.endpoint_url,
+        async with session.create_client('sqs', region_name=self.region_name, endpoint_url=self.endpoint_url,
                                          aws_access_key_id=BotoSession.aws_access_key_id,
                                          aws_secret_access_key=BotoSession.aws_secret_access_key) as client:
             policy_attributes = await client.get_queue_attributes(
@@ -265,12 +266,10 @@ class SQSClient:
         return resp
 
     async def _poll(self):
-
         session = BotoSession.get_session()
-        client = session.create_client('sqs', endpoint_url=self.endpoint_url,
+        client = session.create_client('sqs', region_name=self.region_name, endpoint_url=self.endpoint_url,
                                        aws_access_key_id=BotoSession.aws_access_key_id,
                                        aws_secret_access_key=BotoSession.aws_secret_access_key)
-
         try:
             while self._loop.is_running() and self._receive_messages:
                 try:
