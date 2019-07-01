@@ -123,7 +123,6 @@ class TestListeners(SNSInfra, SQSInfra):
 
     async def test_event_polling(self, insanic_application, listener, sns_client, sqs_client,
                                  subscribe_sqs_to_sns, add_permissions, monkeypatch):
-        # NOTE: this test will be failed but I dont know why
         await listener.after_server_start_event_polling(insanic_application)
 
         assert hasattr(insanic_application, 'messi')
