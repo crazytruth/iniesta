@@ -1,9 +1,13 @@
 import botocore.exceptions
+import functools
+
+from inspect import isawaitable
 
 from iniesta.sessions import BotoSession
 from iniesta.sns import SNSMessage
 
 from insanic.conf import settings
+from insanic.exceptions import APIException
 from insanic.log import error_logger, logger
 
 
@@ -117,3 +121,43 @@ class SNSClient:
                                                     version=version,
                                                     **message_attributes)
         return message_payload
+
+    def publish_event(self, *, event, version=1, **message_attributes):
+        """
+        decorator for publishing event with event specified in decorator and publishes
+        the return of the decorated function. Can only be used on views.
+
+        :param event: Event name to be published
+        :param version: The version.
+        :param message_attributes: Any extra message_attributes to be attached to the event
+        :return:
+        """
+
+
+        def wrapper(func):
+
+            @functools.wraps(func)
+            async def wrapped(*args, **kwargs):
+
+                try:
+                    response = func(*args, **kwargs)
+                except APIException:
+                    raise
+                except Exception:
+                    raise
+                else:
+                    if isawaitable(response):
+                        response = await response
+
+                    if response.status < 300:
+                        message = self.create_message(event=event, message=response.body.decode(),
+                                                      version=version, **message_attributes)
+                        try:
+                            await message.publish()
+                        except Exception as e:
+                            logger.exception("[INIESTA] Something when wrong when publishing. But continuing to serve.")
+
+                    return response
+            return wrapped
+        return wrapper
+

@@ -11,6 +11,7 @@ History
 - CHORE: change extra requires from ``deploy`` to ``cli``
 - CHORE: remove used parameters
 - FEAT: allow aws credentials to be loaded from iniesta then fallback to insanic
+- FEAT: added `publish_event` decorator for view functions.
 
 
 
