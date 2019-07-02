@@ -14,6 +14,7 @@ History
 - FEAT: added `publish_event` decorator for view functions.
 - FEAT: allows aws region configurations through settings or environment variables.
 - FIX: fixes config issues when using publish cli
+- ENHANCEMENT: when publishing with publish cli, it now DOESN'T append the service name.
 
 
 0.1.6 (2019-04-04)
