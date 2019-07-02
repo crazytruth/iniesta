@@ -180,7 +180,7 @@ class TestInitializeWithSNS(SNSInfra):
         monkeypatch.setattr(settings, "INIESTA_SQS_CONSUMER_FILTERS", ["Event"], raising=False)
 
     @pytest.fixture()
-    def insanic_application(self, sns_region_name, sns_endpoint_url, sqs_region_name, sqs_endpoint_url,
+    def insanic_application(self, sns_endpoint_url, sqs_endpoint_url,
                             set_global_topic_arn, set_filters):
         app = Insanic("xavi")
         Iniesta.init_app(app)

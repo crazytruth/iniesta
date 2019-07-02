@@ -42,8 +42,8 @@ class SQSClient:
         except KeyError:
             error_logger.error(f"Please use initialize to initialize queue: {queue_name}")
             raise
-        self.region_name = settings.INIESTA_SQS_REGION_NAME
-        self.endpoint_url = settings.INIESTA_SQS_ENDPOINT_URL
+
+        self.endpoint_url = getattr(settings, 'INIESTA_SQS_ENDPOINT_URL', None)
         self._filters = None
 
         retry_count = retry_count or settings.INIESTA_LOCK_RETRY_COUNT
@@ -75,8 +75,8 @@ class SQSClient:
         :rtype: SQSClient instance
         """
         session = BotoSession.get_session()
-        region_name = settings.INIESTA_SQS_REGION_NAME
-        endpoint_url = settings.INIESTA_SQS_ENDPOINT_URL
+
+        endpoint_url = getattr(settings, 'INIESTA_SQS_ENDPOINT_URL', None)
 
         if queue_name is None:
             queue_name = cls.default_queue_name()
@@ -127,8 +127,11 @@ class SQSClient:
                 subscription_arn=service_subscriptions['SubscriptionArn']
             )
 
-            assert json.loads(subscription_attributes['Attributes'].get('FilterPolicy', '{}')) \
-                   == self.filters
+            filter_policies = json.loads(subscription_attributes['Attributes'].get('FilterPolicy', '{}'))
+
+            if filter_policies != self.filters:
+                raise AssertionError(f"Subscription filters and current filters are not equivalent. "
+                                     f"{filter_policies} {self.filters}")
 
     async def confirm_permission(self):
         """

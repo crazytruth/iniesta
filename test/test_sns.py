@@ -3,6 +3,8 @@ import pytest
 import ujson as json
 
 from insanic.conf import settings
+from insanic.responses import json_response
+from insanic.views import InsanicView
 
 from iniesta.sns import SNSClient, SNSMessage
 
@@ -308,3 +310,32 @@ class TestSNSClient(SNSInfra):
 
         assert attributes['Attributes']['TopicArn'] == create_global_sns['TopicArn']
         assert attributes['Attributes']['Protocol'] == 'sqs'
+
+    @pytest.fixture()
+    def insanic_application_with_event_polling(self, monkeypatch, insanic_application, create_global_sns, filter_policy):
+        monkeypatch.setattr(settings, 'INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN', create_global_sns['TopicArn'],
+                            raising=False)
+        from iniesta import Iniesta
+        Iniesta.init_event_polling(insanic_application)
+        return insanic_application
+
+    @pytest.fixture()
+    def insanic_server_with_event_polling(self, loop, insanic_application_with_event_polling, test_server):
+        return loop.run_until_complete(test_server(insanic_application_with_event_polling))
+
+    async def test_publish_event_decorator(self, start_local_aws, create_global_sns, sns_endpoint_url,
+                                           insanic_server_with_event_polling):
+
+        client = await SNSClient.initialize(
+            topic_arn=create_global_sns['TopicArn']
+        )
+
+        class TestView(InsanicView):
+
+            @client.publish_event('testEvent')
+            def get(self, request, *args, **kwargs):
+
+                return json_response({})
+
+
+        assert False

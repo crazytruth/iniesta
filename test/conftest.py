@@ -49,6 +49,19 @@ def initialize_for_passing_and_receiving(insanic_application):
 def session_id():
     return uuid.uuid4().hex
 
+@pytest.fixture(scope="module")
+def module_id():
+    return uuid.uuid4().hex
+
+@pytest.fixture(scope='function')
+def function_id():
+    return uuid.uuid4().hex
+
+
+@pytest.fixture(autouse=True)
+def reset_session():
+    yield
+    BotoSession.reset_aws_credentials()
 
 @pytest.fixture(autouse=True)
 def set_redis_connection_info(redisdb, monkeypatch):
@@ -65,6 +78,7 @@ def reset_boto_session():
     BotoSession.session = None
     yield
     BotoSession.session = None
+    BotoSession.reset_aws_credentials()
 
 
 @pytest.fixture(autouse=True)

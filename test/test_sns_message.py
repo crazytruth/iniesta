@@ -65,7 +65,7 @@ class TestSNSMessage:
         with pytest.raises(ValueError, match="Value is not a string."):
             message.add_string_attribute('a', b'b')
 
-    def test_number_message_sttributes(self):
+    def test_number_message_attributes(self):
         message = SNSMessage()
 
         assert message.message_attributes == {}

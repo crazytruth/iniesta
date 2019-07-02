@@ -10,3 +10,4 @@ include tox.ini
 exclude *.png
 graft test
 graft docs
+exclude .python-version

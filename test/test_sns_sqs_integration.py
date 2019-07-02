@@ -16,8 +16,11 @@ from .infra import SNSInfra, SQSInfra
 
 
 class TestSNSSQSIntegration(SQSInfra, SNSInfra):
+
+    run_local = False
+
     @pytest.fixture(autouse=True)
-    def cancel_polling(self, monkeypatch, sqs_region_name, create_service_sqs):
+    def cancel_polling(self, monkeypatch, create_service_sqs):
         async def mock_hook_post_message_handler(queue_url):
             # NOTE: due to The security token included in the request is invalid, I comment out this please check it
             # sqs = boto3.resource('sqs', region_name=sqs_region_name,
@@ -26,7 +29,7 @@ class TestSNSSQSIntegration(SQSInfra, SNSInfra):
             # queue = sqs.Queue(queue_url)
             # if int(queue.attributes['ApproximateNumberOfMessages']) == 0:
             #     raise StopPolling("Stop")
-            sqs = boto3.client('sqs', region_name=sqs_region_name, endpoint_url=queue_url,
+            sqs = boto3.client('sqs', endpoint_url=queue_url,
                                aws_access_key_id=BotoSession.aws_access_key_id,
                                aws_secret_access_key=BotoSession.aws_secret_access_key)
             response = sqs.get_queue_attributes(
@@ -43,11 +46,11 @@ class TestSNSSQSIntegration(SQSInfra, SNSInfra):
         monkeypatch.setattr(SQSClient, 'hook_post_receive_message_handler', with_counter)
 
     @pytest.fixture(scope='function')
-    async def sns_client(self, create_global_sns, sns_region_name, sns_endpoint_url):
+    async def sns_client(self, create_global_sns, sns_endpoint_url):
         return await SNSClient.initialize(topic_arn=create_global_sns['TopicArn'])
 
     @pytest.fixture(scope='function')
-    async def sqs_client(self, sqs_region_name, sqs_endpoint_url, sns_client):
+    async def sqs_client(self, sqs_endpoint_url, sns_client):
         client = await SQSClient.initialize(queue_name=self.queue_name)
         yield client
         SQSClient.handlers = {}
@@ -147,5 +150,7 @@ class TestSNSSQSIntegration(SQSInfra, SNSInfra):
                                        sqs_client, sns_client):
         await sqs_client.confirm_permission()
 
-    async def test_confirm_subscription(self, start_local_aws, create_sqs_subscription, sqs_client, sns_client):
+    async def test_confirm_subscription(self, start_local_aws, create_sqs_subscription, add_permissions,
+                                        sqs_client, sns_client):
+        await asyncio.sleep(1)
         await sqs_client.confirm_subscription(sns_client.topic_arn)

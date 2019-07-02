@@ -39,6 +39,12 @@ class _Iniesta(object):
 
             self.config_imported = True
 
+    def unload_config(self, settings_object):
+        for c in dir(config):
+            if c.isupper():
+                delattr(settings_object, c)
+        self.config_imported = False
+
     def init_app(self, app):
         """
         Initializes the application with producing and event polling.

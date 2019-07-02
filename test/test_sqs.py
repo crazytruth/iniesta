@@ -34,15 +34,15 @@ class TestSQSClient(SQSInfra):
         )
 
     @pytest.fixture
-    def queue_message(self, create_service_sqs, sqs_region_name, sqs_endpoint_url):
-        sqs = boto3.client('sqs', region_name=sqs_region_name, endpoint_url=sqs_endpoint_url,
+    def queue_message(self, create_service_sqs, sqs_endpoint_url):
+        sqs = boto3.client('sqs', endpoint_url=sqs_endpoint_url,
                            aws_access_key_id=BotoSession.aws_access_key_id,
                            aws_secret_access_key=BotoSession.aws_secret_access_key)
         return self._queue_message(sqs, create_service_sqs['QueueUrl'])
 
     @pytest.fixture
-    def queue_ten_messages(self, create_service_sqs, sqs_region_name, sqs_endpoint_url):
-        sqs = boto3.client('sqs', region_name=sqs_region_name, endpoint_url=sqs_endpoint_url,
+    def queue_ten_messages(self, create_service_sqs, sqs_endpoint_url):
+        sqs = boto3.client('sqs', endpoint_url=sqs_endpoint_url,
                            aws_access_key_id=BotoSession.aws_access_key_id,
                            aws_secret_access_key=BotoSession.aws_secret_access_key)
         messages = []
@@ -55,11 +55,11 @@ class TestSQSClient(SQSInfra):
         with pytest.raises(KeyError):
             client = SQSClient(queue_name="asd")
 
-    async def test_sqs_client_initialize_queue_does_not_exist(self, start_local_aws, sqs_region_name, sqs_endpoint_url):
+    async def test_sqs_client_initialize_queue_does_not_exist(self, start_local_aws, sqs_endpoint_url):
         with pytest.raises(botocore.exceptions.ClientError, match="") as exc_info:
             client = await SQSClient.initialize(queue_name='asdasdasda')
 
-    async def test_sqs_client(self, start_local_aws, create_service_sqs, sqs_region_name, sqs_endpoint_url):
+    async def test_sqs_client(self, start_local_aws, create_service_sqs, sqs_endpoint_url):
         client = await SQSClient.initialize(queue_name=self.queue_name)
         assert self.queue_name in client.queue_urls[self.queue_name]
         assert client.queue_url == create_service_sqs['QueueUrl']
@@ -71,7 +71,7 @@ class TestSQSClient(SQSInfra):
             print(**kwargs)
         assert "something" in SQSClient.handlers
 
-    async def test_receive_message(self, start_local_aws, create_service_sqs, sqs_region_name, sqs_endpoint_url,
+    async def test_receive_message(self, start_local_aws, create_service_sqs, sqs_endpoint_url,
                                    queue_ten_messages, monkeypatch):
         message_number = []
 
@@ -95,8 +95,7 @@ class TestSQSClient(SQSInfra):
 
         await client.lock_manager.destroy()
 
-    async def test_receive_message_with_error(self, start_local_aws, create_service_sqs,
-                                              sqs_region_name, sqs_endpoint_url, queue_ten_messages, monkeypatch):
+    async def test_receive_message_with_error(self, start_local_aws, create_service_sqs, sqs_endpoint_url, queue_ten_messages, monkeypatch):
 
         message_number = []
 
@@ -127,7 +126,7 @@ class TestSQSClient(SQSInfra):
 
         await client.lock_manager.destroy()
 
-    async def test_handle_default_message(self, start_local_aws, create_service_sqs, sqs_region_name, sqs_endpoint_url,
+    async def test_handle_default_message(self, start_local_aws, create_service_sqs, sqs_endpoint_url,
                                           queue_ten_messages, monkeypatch):
         message_tracker = []
 
@@ -151,7 +150,7 @@ class TestSQSClient(SQSInfra):
 
         assert len(message_tracker) > 0
 
-    async def test_handle_exception(self, start_local_aws, create_service_sqs, sqs_region_name, sqs_endpoint_url,
+    async def test_handle_exception(self, start_local_aws, create_service_sqs, sqs_endpoint_url,
                                     queue_message, monkeypatch, caplog):
         message_tracker = []
 
@@ -180,9 +179,9 @@ class TestSQSClient(SQSInfra):
         assert hasattr(log_record, 'sqs_attributes')
         assert hasattr(log_record, 'sqs_message_id')
 
-        assert caplog.records[0].iniesta_pass == "test_event"
+        assert getattr(caplog.records[0], 'iniesta_pass', caplog.records[0].message) == "test_event"
 
-    async def test_handle_message(self, start_local_aws, create_service_sqs, sqs_region_name, sqs_endpoint_url,
+    async def test_handle_message(self, start_local_aws, create_service_sqs, sqs_endpoint_url,
                                   queue_ten_messages, monkeypatch):
         """
         SAMPLE MESSAGE FROM AWS SQS
@@ -233,7 +232,7 @@ class TestSQSClient(SQSInfra):
 
         assert len(message_tracker) == 10
 
-    async def test_async_handle_message(self, start_local_aws, create_service_sqs, sqs_region_name, sqs_endpoint_url,
+    async def test_async_handle_message(self, start_local_aws, create_service_sqs, sqs_endpoint_url,
                                   queue_ten_messages, monkeypatch):
         """
         SAMPLE MESSAGE FROM AWS SQS
@@ -284,7 +283,7 @@ class TestSQSClient(SQSInfra):
 
         assert len(message_tracker) == 10
 
-    async def test_handle_message_lock(self, start_local_aws, create_service_sqs, sqs_region_name, sqs_endpoint_url,
+    async def test_handle_message_lock(self, start_local_aws, create_service_sqs, sqs_endpoint_url,
                                        queue_ten_messages, monkeypatch, redisdb, caplog):
         message_tracker = []
 
