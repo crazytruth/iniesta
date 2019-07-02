@@ -95,7 +95,7 @@ class TestSQSMessage(SQSInfra):
 
         # try get message from queue
 
-        sqs_boto_client = boto3.client('sqs', region_name=sqs_client.region_name, endpoint_url=sqs_client.endpoint_url,
+        sqs_boto_client = boto3.client('sqs', region_name=BotoSession.aws_default_region, endpoint_url=sqs_client.endpoint_url,
                                        aws_access_key_id=BotoSession.aws_access_key_id,
                                        aws_secret_access_key=BotoSession.aws_secret_access_key)
         sqs_message = sqs_boto_client.receive_message(

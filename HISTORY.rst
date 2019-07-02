@@ -12,7 +12,7 @@ History
 - CHORE: remove used parameters
 - FEAT: allow aws credentials to be loaded from iniesta then fallback to insanic
 - FEAT: added `publish_event` decorator for view functions.
-
+- FEAT: allows aws region configurations through settings or environment variables.
 
 
 0.1.6 (2019-04-04)
