@@ -44,6 +44,10 @@ class SNSMessage(MessageAttributes):
         self['Message'] = value
 
     @property
+    def size(self):
+        return len(json.dumps(self).encode('utf8'))
+
+    @property
     def subject(self):
         return self['Subject']
 
@@ -73,7 +77,7 @@ class SNSMessage(MessageAttributes):
 
         session = BotoSession.get_session()
         try:
-            async with session.create_client('sns', region_name=self.client.region_name,
+            async with session.create_client('sns', region_name=BotoSession.aws_default_region,
                                              endpoint_url=self.client.endpoint_url,
                                              aws_access_key_id=BotoSession.aws_access_key_id,
                                              aws_secret_access_key=BotoSession.aws_secret_access_key

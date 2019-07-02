@@ -52,7 +52,7 @@ class SNSClient:
         """
         session = BotoSession.get_session()
 
-        async with session.create_client('sns', region_name=settings.INIESTA_SNS_REGION_NAME,
+        async with session.create_client('sns', region_name=BotoSession.aws_default_region,
                                          endpoint_url=settings.INIESTA_SNS_ENDPOINT_URL,
                                          aws_access_key_id=BotoSession.aws_access_key_id,
                                          aws_secret_access_key=BotoSession.aws_secret_access_key) as client:
@@ -67,7 +67,8 @@ class SNSClient:
             query_args.update({"NextToken": next_token})
 
         try:
-            async with session.create_client('sns', region_name=self.region_name, endpoint_url=self.endpoint_url,
+            async with session.create_client('sns', region_name=BotoSession.aws_default_region,
+                                             endpoint_url=self.endpoint_url,
                                              aws_access_key_id=BotoSession.aws_access_key_id,
                                              aws_secret_access_key=BotoSession.aws_secret_access_key) as client:
                 return await client.list_subscriptions_by_topic(**query_args)
@@ -102,7 +103,9 @@ class SNSClient:
     async def get_subscription_attributes(self, subscription_arn):
 
         async with BotoSession.get_session().create_client(
-                'sns', region_name=self.region_name, endpoint_url=self.endpoint_url,
+                'sns',
+                region_name=BotoSession.aws_default_region,
+                endpoint_url=self.endpoint_url,
                 aws_access_key_id=BotoSession.aws_access_key_id,
                 aws_secret_access_key=BotoSession.aws_secret_access_key) as client:
             return await client.get_subscription_attributes(SubscriptionArn=subscription_arn)

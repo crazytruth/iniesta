@@ -14,6 +14,7 @@ Contents:
    installation
    usage
    handlers
+   configurations
    commands
    references
    contributing
