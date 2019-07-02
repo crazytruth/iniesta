@@ -3,7 +3,7 @@
 History
 -------
 
-0.1.8 (unreleased)
+0.2.0 (2019-07-02)
 ++++++++++++++++++
 
 - FEAT: allow aws credentials to be loaded from iniesta then fallback to insanic
