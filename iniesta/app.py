@@ -23,11 +23,9 @@ class _Iniesta(object):
         else:
             self.initialization_type = self.initialization_type | value
 
-
     def check_global_arn(self, settings_object):
         if settings_object.INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN is None:
             raise ImproperlyConfigured("INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN not set in settings!")
-
 
     def load_config(self, settings_object):
         if not self.config_imported:
@@ -40,6 +38,12 @@ class _Iniesta(object):
                         setattr(settings_object, c, conf)
 
             self.config_imported = True
+
+    def unload_config(self, settings_object):
+        for c in dir(config):
+            if c.isupper():
+                delattr(settings_object, c)
+        self.config_imported = False
 
     def init_app(self, app):
         """

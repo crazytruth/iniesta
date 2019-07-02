@@ -42,7 +42,8 @@ class SQSClient:
         except KeyError:
             error_logger.error(f"Please use initialize to initialize queue: {queue_name}")
             raise
-        self.endpoint_url = settings.INIESTA_SQS_ENDPOINT_URL
+
+        self.endpoint_url = getattr(settings, 'INIESTA_SQS_ENDPOINT_URL', None)
         self._filters = None
 
         retry_count = retry_count or settings.INIESTA_LOCK_RETRY_COUNT
@@ -74,7 +75,8 @@ class SQSClient:
         :rtype: SQSClient instance
         """
         session = BotoSession.get_session()
-        endpoint_url = settings.INIESTA_SQS_ENDPOINT_URL
+
+        endpoint_url = getattr(settings, 'INIESTA_SQS_ENDPOINT_URL', None)
 
         if queue_name is None:
             queue_name = cls.default_queue_name()
@@ -82,9 +84,11 @@ class SQSClient:
         # check if queue exists
         if queue_name not in cls.queue_urls:
             try:
-                async with session.create_client('sqs', endpoint_url=endpoint_url,
-                                                 aws_access_key_id=settings.INIESTA_AWS_ACCESS_KEY_ID,
-                                                 aws_secret_access_key=settings.INIESTA_AWS_SECRET_ACCESS_KEY) as client:
+                async with session.create_client('sqs',
+                                                 region_name=BotoSession.aws_default_region,
+                                                 endpoint_url=endpoint_url,
+                                                 aws_access_key_id=BotoSession.aws_access_key_id,
+                                                 aws_secret_access_key=BotoSession.aws_secret_access_key) as client:
                     response = await client.get_queue_url(QueueName=queue_name)
             except botocore.exceptions.ClientError as e:
                 error_message = f"[{e.response['Error']['Code']}]: {e.response['Error']['Message']} {queue_name}"
@@ -125,18 +129,21 @@ class SQSClient:
                 subscription_arn=service_subscriptions['SubscriptionArn']
             )
 
-            assert json.loads(subscription_attributes['Attributes'].get('FilterPolicy', '{}')) \
-                   == self.filters
+            filter_policies = json.loads(subscription_attributes['Attributes'].get('FilterPolicy', '{}'))
+
+            if filter_policies != self.filters:
+                raise AssertionError(f"Subscription filters and current filters are not equivalent. "
+                                     f"{filter_policies} {self.filters}")
 
     async def confirm_permission(self):
         """
         Confirms correct permissions are in place.
         """
         session = BotoSession.get_session()
-
-        async with session.create_client('sqs', endpoint_url=self.endpoint_url,
-                                         aws_access_key_id=settings.INIESTA_AWS_ACCESS_KEY_ID,
-                                         aws_secret_access_key=settings.INIESTA_AWS_SECRET_ACCESS_KEY) as client:
+        async with session.create_client('sqs', region_name=BotoSession.aws_default_region,
+                                         endpoint_url=self.endpoint_url,
+                                         aws_access_key_id=BotoSession.aws_access_key_id,
+                                         aws_secret_access_key=BotoSession.aws_secret_access_key) as client:
             policy_attributes = await client.get_queue_attributes(
                 QueueUrl=self.queue_url,
                 AttributeNames=['Policy']
@@ -265,12 +272,12 @@ class SQSClient:
         return resp
 
     async def _poll(self):
-
         session = BotoSession.get_session()
-        client = session.create_client('sqs', endpoint_url=self.endpoint_url,
-                                       aws_access_key_id=settings.INIESTA_AWS_ACCESS_KEY_ID,
-                                       aws_secret_access_key=settings.INIESTA_AWS_SECRET_ACCESS_KEY)
-
+        client = session.create_client('sqs',
+                                       region_name=BotoSession.aws_default_region,
+                                       endpoint_url=self.endpoint_url,
+                                       aws_access_key_id=BotoSession.aws_access_key_id,
+                                       aws_secret_access_key=BotoSession.aws_secret_access_key)
         try:
             while self._loop.is_running() and self._receive_messages:
                 try:
@@ -370,9 +377,3 @@ class SQSClient:
         :rtype: SQSMessage
         """
         return SQSMessage(self, message)
-
-
-
-
-
-

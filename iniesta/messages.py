@@ -15,11 +15,11 @@ class MessageAttributes(UserDict):
     def message_attributes(self):
         return self.get('MessageAttributes', {})
 
-    def add_event(self, value):
+    def add_event(self, value, *, raw=False):
         if not isinstance(value, str):
             raise ValueError("Event must be a string.")
 
-        if not value.endswith(f".{settings.SERVICE_NAME}"):
+        if not value.endswith(f".{settings.SERVICE_NAME}") and not raw:
             value = ".".join([value, settings.SERVICE_NAME])
 
         self.add_string_attribute(settings.INIESTA_SNS_EVENT_KEY, value)

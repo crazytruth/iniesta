@@ -20,29 +20,48 @@ def insanic_application():
 
     yield app
 
+
 @pytest.fixture
 def initialize_for_passing(insanic_application):
     Iniesta.init_producer(insanic_application)
     yield insanic_application
+
 
 @pytest.fixture
 def initialize_for_receiving_short_passes(insanic_application):
     Iniesta.init_queue_polling(insanic_application)
     yield insanic_application
 
+
 @pytest.fixture
 def initialize_for_receiving_through_passes(insanic_application):
     Iniesta.init_event_polling(insanic_application)
     yield insanic_application
+
 
 @pytest.fixture
 def initialize_for_passing_and_receiving(insanic_application):
     Iniesta.init_app(insanic_application)
     yield insanic_application
 
+
 @pytest.fixture(scope="session")
 def session_id():
     return uuid.uuid4().hex
+
+@pytest.fixture(scope="module")
+def module_id():
+    return uuid.uuid4().hex
+
+@pytest.fixture(scope='function')
+def function_id():
+    return uuid.uuid4().hex
+
+
+@pytest.fixture(autouse=True)
+def reset_session():
+    yield
+    BotoSession.reset_aws_credentials()
 
 @pytest.fixture(autouse=True)
 def set_redis_connection_info(redisdb, monkeypatch):
@@ -53,11 +72,14 @@ def set_redis_connection_info(redisdb, monkeypatch):
     monkeypatch.setattr(settings, 'REDIS_HOST', '127.0.0.1')
     monkeypatch.setattr(settings, 'REDIS_DB', db)
 
+
 @pytest.fixture(autouse=True)
 def reset_boto_session():
     BotoSession.session = None
     yield
     BotoSession.session = None
+    BotoSession.reset_aws_credentials()
+
 
 @pytest.fixture(autouse=True)
 def reset_iniesta():

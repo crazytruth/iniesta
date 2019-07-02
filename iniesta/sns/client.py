@@ -1,9 +1,13 @@
 import botocore.exceptions
+import functools
+
+from inspect import isawaitable
 
 from iniesta.sessions import BotoSession
 from iniesta.sns import SNSMessage
 
 from insanic.conf import settings
+from insanic.exceptions import APIException
 from insanic.log import error_logger, logger
 
 
@@ -16,6 +20,7 @@ class SNSClient:
         :param topic_arn:
         """
         self.topic_arn = topic_arn or settings.INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN
+        self.region_name = settings.INIESTA_SNS_REGION_NAME
         self.endpoint_url = settings.INIESTA_SNS_ENDPOINT_URL
 
     @classmethod
@@ -47,9 +52,10 @@ class SNSClient:
         """
         session = BotoSession.get_session()
 
-        async with session.create_client('sns', endpoint_url=settings.INIESTA_SNS_ENDPOINT_URL,
-                                         aws_access_key_id=settings.INIESTA_AWS_ACCESS_KEY_ID,
-                                         aws_secret_access_key=settings.INIESTA_AWS_SECRET_ACCESS_KEY) as client:
+        async with session.create_client('sns', region_name=BotoSession.aws_default_region,
+                                         endpoint_url=settings.INIESTA_SNS_ENDPOINT_URL,
+                                         aws_access_key_id=BotoSession.aws_access_key_id,
+                                         aws_secret_access_key=BotoSession.aws_secret_access_key) as client:
             await client.get_topic_attributes(TopicArn=topic_arn)
 
     async def _list_subscriptions_by_topic(self, next_token=None):
@@ -61,9 +67,10 @@ class SNSClient:
             query_args.update({"NextToken": next_token})
 
         try:
-            async with session.create_client('sns', endpoint_url=self.endpoint_url,
-                                             aws_access_key_id=settings.INIESTA_AWS_ACCESS_KEY_ID,
-                                             aws_secret_access_key=settings.INIESTA_AWS_SECRET_ACCESS_KEY) as client:
+            async with session.create_client('sns', region_name=BotoSession.aws_default_region,
+                                             endpoint_url=self.endpoint_url,
+                                             aws_access_key_id=BotoSession.aws_access_key_id,
+                                             aws_secret_access_key=BotoSession.aws_secret_access_key) as client:
                 return await client.list_subscriptions_by_topic(**query_args)
         except botocore.exceptions.ClientError as e:
             error_message = f"[{e.response['Error']['Code']}]: {e.response['Error']['Message']} {self.topic_arn}"
@@ -96,9 +103,11 @@ class SNSClient:
     async def get_subscription_attributes(self, subscription_arn):
 
         async with BotoSession.get_session().create_client(
-                'sns', endpoint_url=self.endpoint_url,
-                aws_access_key_id=settings.INIESTA_AWS_ACCESS_KEY_ID,
-                aws_secret_access_key=settings.INIESTA_AWS_SECRET_ACCESS_KEY) as client:
+                'sns',
+                region_name=BotoSession.aws_default_region,
+                endpoint_url=self.endpoint_url,
+                aws_access_key_id=BotoSession.aws_access_key_id,
+                aws_secret_access_key=BotoSession.aws_secret_access_key) as client:
             return await client.get_subscription_attributes(SubscriptionArn=subscription_arn)
 
     def create_message(self, *, event, message, version=1, **message_attributes):
@@ -115,3 +124,43 @@ class SNSClient:
                                                     version=version,
                                                     **message_attributes)
         return message_payload
+
+    def publish_event(self, *, event, version=1, **message_attributes):
+        """
+        decorator for publishing event with event specified in decorator and publishes
+        the return of the decorated function. Can only be used on views.
+
+        :param event: Event name to be published
+        :param version: The version.
+        :param message_attributes: Any extra message_attributes to be attached to the event
+        :return:
+        """
+
+
+        def wrapper(func):
+
+            @functools.wraps(func)
+            async def wrapped(*args, **kwargs):
+
+                try:
+                    response = func(*args, **kwargs)
+                except APIException:
+                    raise
+                except Exception:
+                    raise
+                else:
+                    if isawaitable(response):
+                        response = await response
+
+                    if response.status < 300:
+                        message = self.create_message(event=event, message=response.body.decode(),
+                                                      version=version, **message_attributes)
+                        try:
+                            await message.publish()
+                        except Exception as e:
+                            logger.exception("[INIESTA] Something when wrong when publishing. But continuing to serve.")
+
+                    return response
+            return wrapped
+        return wrapper
+

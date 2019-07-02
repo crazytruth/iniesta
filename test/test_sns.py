@@ -3,7 +3,10 @@ import pytest
 import ujson as json
 
 from insanic.conf import settings
+from insanic.responses import json_response
+from insanic.views import InsanicView
 
+from iniesta.sessions import BotoSession
 from iniesta.sns import SNSClient, SNSMessage
 
 from .infra import SNSInfra
@@ -309,3 +312,69 @@ class TestSNSClient(SNSInfra):
         assert attributes['Attributes']['TopicArn'] == create_global_sns['TopicArn']
         assert attributes['Attributes']['Protocol'] == 'sqs'
 
+    @pytest.fixture()
+    async def insanic_application_with_event_polling(self, monkeypatch, insanic_application, create_global_sns, filter_policy):
+        monkeypatch.setattr(settings, 'INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN', create_global_sns['TopicArn'],
+                            raising=False)
+        from iniesta import Iniesta
+        Iniesta.init_producer(insanic_application)
+
+        client = await SNSClient.initialize(
+            topic_arn=create_global_sns['TopicArn']
+        )
+
+        class TestView(InsanicView):
+            permission_classes = []
+
+            @client.publish_event(event='testEvent')
+            def get(self, request, *args, **kwargs):
+                return json_response({"help": "me"})
+
+        insanic_application.add_route(TestView.as_view(), '/test/event/')
+
+        return insanic_application
+
+    def test_publish_event_decorator(self, start_local_aws, create_global_sns, sns_endpoint_url,
+                                     insanic_application_with_event_polling, monkeypatch):
+        BotoSession.session = None
+
+        errors = []
+
+        async def mock_publish(message):
+
+            try:
+                assert message.event == "testEvent.xavi"
+            except AssertionError as e:
+                errors.append(e)
+                raise
+
+            try:
+                assert json.loads(message.message) == {"help": "me"}
+            except AssertionError as e:
+                errors.append(e)
+                raise
+
+        monkeypatch.setattr(SNSMessage, 'publish', mock_publish)
+
+        request, response = insanic_application_with_event_polling.test_client.get('/test/event/')
+        assert response.status == 200
+        assert response.json == {"help": "me"}
+
+        if errors:
+            raise errors[0]
+
+
+    def test_publish_event_decorator_even_if_publishing_error(self, start_local_aws, create_global_sns,
+                                                              sns_endpoint_url, insanic_application_with_event_polling,
+                                                              monkeypatch):
+
+        BotoSession.session = None
+
+        async def mock_publish(message):
+            raise Exception("AAAAHHHHHH SOMETHING WENT WRONG!")
+
+        monkeypatch.setattr(SNSMessage, 'publish', mock_publish)
+
+        request, response = insanic_application_with_event_polling.test_client.get('/test/event/')
+        assert response.status == 200
+        assert response.json == {"help": "me"}

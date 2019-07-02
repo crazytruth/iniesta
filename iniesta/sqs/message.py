@@ -22,6 +22,7 @@ ERROR_MESSAGES = {
     "delay_seconds_type_error": 'Delay Seconds must be an integer. Got {value}.'
 }
 
+
 class SQSMessage(MessageAttributes):
 
     def __init__(self, client, message):
@@ -119,15 +120,14 @@ class SQSMessage(MessageAttributes):
         """
         session = BotoSession.get_session()
         try:
-            async with session.create_client('sqs',
+            async with session.create_client('sqs', region_name=BotoSession.aws_default_region,
                                              endpoint_url=self.client.endpoint_url,
-                                             aws_access_key_id=settings.INIESTA_AWS_ACCESS_KEY_ID,
-                                             aws_secret_access_key=settings.INIESTA_AWS_SECRET_ACCESS_KEY
+                                             aws_access_key_id=BotoSession.aws_access_key_id,
+                                             aws_secret_access_key=BotoSession.aws_secret_access_key
                                              ) as client:
                 message = await client.send_message(QueueUrl=self.client.queue_url,
                                                     **{k:v for k,v in self.items()
                                                        if k in VALID_SEND_MESSAGE_ARGS})
-
                 self.message_id = message['MessageId']
                 self.md5_of_body = message['MD5OfMessageBody']
                 return self
