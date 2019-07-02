@@ -6,7 +6,11 @@ History
 0.1.8 (unreleased)
 ++++++++++++++++++
 
-- Nothing changed yet.
+- FEAT: allow aws credentials to be loaded from iniesta then fallback to insanic
+- FEAT: added `publish_event` decorator for view functions.
+- FEAT: allows aws region configurations through settings or environment variables.
+- FIX: fixes config issues when using publish cli
+- ENHANCEMENT: when publishing with publish cli, it now DOESN'T append the service name.
 
 
 0.1.7 (2019-04-11)
@@ -16,11 +20,6 @@ History
 - CHORE: MO documentations!!!
 - CHORE: change extra requires from ``deploy`` to ``cli``
 - CHORE: remove used parameters
-- FEAT: allow aws credentials to be loaded from iniesta then fallback to insanic
-- FEAT: added `publish_event` decorator for view functions.
-- FEAT: allows aws region configurations through settings or environment variables.
-- FIX: fixes config issues when using publish cli
-- ENHANCEMENT: when publishing with publish cli, it now DOESN'T append the service name.
 
 
 0.1.6 (2019-04-04)
