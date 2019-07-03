@@ -3,7 +3,7 @@
 History
 -------
 
-0.2.1 (unreleased)
+0.2.1 (2019-07-03)
 ++++++++++++++++++
 
 - FIX: reinstantiate aiobotocore session if loop is closed
