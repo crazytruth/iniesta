@@ -19,7 +19,7 @@ class BotoSession:
 
     @classmethod
     def get_session(cls, loop=None):
-        if cls.session is None:
+        if cls.session is None or (cls.session is not None and cls.session._loop._closed):
             cls.session = aiobotocore.get_session(loop=loop)
         return cls.session
 
