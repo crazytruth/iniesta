@@ -12,7 +12,7 @@ class TestBotoSession:
 
         BotoSession.reset_aws_credentials()
 
-    def test_boto_session_singleton(self):
+    async def test_boto_session_singleton(self):
         session1 = BotoSession.get_session()
 
         assert session1 is not None
