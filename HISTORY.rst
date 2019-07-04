@@ -6,7 +6,7 @@ History
 0.2.2 (unreleased)
 ++++++++++++++++++
 
-- Nothing changed yet.
+- FIX: reinstantiate aiobotocore session if loop is not running
 
 
 0.2.1 (2019-07-03)
