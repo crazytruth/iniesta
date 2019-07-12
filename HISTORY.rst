@@ -7,6 +7,7 @@ History
 ++++++++++++++++++
 
 - FEAT: add init_custom helper method to Iniesta
+- CHORE: documentation about advanced usages
 
 
 0.2.2 (2019-07-04)
