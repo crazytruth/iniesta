@@ -6,7 +6,7 @@ History
 0.2.3 (unreleased)
 ++++++++++++++++++
 
-- Nothing changed yet.
+- FEAT: add init_custom helper method to Iniesta
 
 
 0.2.2 (2019-07-04)
