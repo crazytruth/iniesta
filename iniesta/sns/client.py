@@ -13,47 +13,53 @@ from insanic.log import error_logger, logger
 
 class SNSClient:
 
-    def __init__(self, topic_arn=None):
+    def __init__(self, topic_arn=None, *, region_name=None, endpoint_url=None):
         """
         initialize client with topic arn and endpoint url
 
         :param topic_arn:
+        :param region_name: takes priority or defaults to setings
+        :param endpoint_url: takes priority or defaults to settings
         """
         self.topic_arn = topic_arn or settings.INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN
-        self.region_name = settings.INIESTA_SNS_REGION_NAME
-        self.endpoint_url = settings.INIESTA_SNS_ENDPOINT_URL
+        self.region_name = region_name or settings.INIESTA_SNS_REGION_NAME
+        self.endpoint_url = endpoint_url or settings.INIESTA_SNS_ENDPOINT_URL
 
     @classmethod
-    async def initialize(cls, *, topic_arn):
+    async def initialize(cls, *, topic_arn, region_name=None, endpoint_url=None):
         """
         Class method to initialize the SNS Client and confirm the topic exists.
         We needed to do this because of asyncio functionality
 
         :param topic_arn:
+        :param region_name: takes priority or defaults to setings
+        :param endpoint_url: takes priority or defaults to settings
         :return:
         """
 
         try:
-            await cls._confirm_topic(topic_arn)
+            await cls._confirm_topic(topic_arn, region_name=region_name, endpoint_url=endpoint_url)
         except botocore.exceptions.ClientError as e:
             error_message = f"[{e.response['Error']['Code']}]: {e.response['Error']['Message']} {topic_arn}"
             error_logger.critical(error_message)
             raise
 
-        return cls(topic_arn)
+        return cls(topic_arn, region_name=region_name, endpoint_url=endpoint_url)
 
     @classmethod
-    async def _confirm_topic(cls, topic_arn):
+    async def _confirm_topic(cls, topic_arn, *, region_name=None, endpoint_url=None):
         """
         Confirm that the topic exists
 
         :param topic_arn:
+        :param region_name: takes priority or defaults to setings
+        :param endpoint_url: takes priority or defaults to settings
         :return:
         """
         session = BotoSession.get_session()
 
-        async with session.create_client('sns', region_name=BotoSession.aws_default_region,
-                                         endpoint_url=settings.INIESTA_SNS_ENDPOINT_URL,
+        async with session.create_client('sns', region_name=region_name or BotoSession.aws_default_region,
+                                         endpoint_url=endpoint_url or settings.INIESTA_SNS_ENDPOINT_URL,
                                          aws_access_key_id=BotoSession.aws_access_key_id,
                                          aws_secret_access_key=BotoSession.aws_secret_access_key) as client:
             await client.get_topic_attributes(TopicArn=topic_arn)

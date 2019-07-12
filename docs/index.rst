@@ -15,6 +15,7 @@ Contents:
    usage
    handlers
    configurations
+   advanced_usage
    commands
    references
    contributing

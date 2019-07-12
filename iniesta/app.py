@@ -57,6 +57,25 @@ class _Iniesta(object):
         self._init_producer(app)
         self._init_event_polling(app)
 
+    def init_custom(self, app):
+        """
+        Initializes the application for custom use.
+
+        :param app: An instance of an insanic application
+        :return:
+        """
+        self._init_custom(app)
+
+    def _init_custom(self, app):
+        """
+        load configs
+
+        :param app:
+        :return:
+        """
+        self.load_config(app.config)
+        self.set_initialization_type(InitializationTypes.CUSTOM)
+
     def init_producer(self, app):
         """
         Initializes the application with only SNS producing capabilities.
