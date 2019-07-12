@@ -74,6 +74,7 @@ class _Iniesta(object):
         :return:
         """
         self.load_config(app.config)
+        self.set_initialization_type(InitializationTypes.CUSTOM)
 
     def init_producer(self, app):
         """
