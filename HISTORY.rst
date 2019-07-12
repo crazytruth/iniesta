@@ -8,6 +8,7 @@ History
 
 - FEAT: add init_custom helper method to Iniesta
 - CHORE: documentation about advanced usages
+- FIX: typo in iniesta configs REGIO -> REGION
 
 
 0.2.2 (2019-07-04)
