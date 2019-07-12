@@ -8,6 +8,7 @@ History
 
 - FEAT: add init_custom helper method to Iniesta
 - FEAT: allows region_name and endpoint_url when initializing SNSClient
+- FEAT: allows region_name and endpoint_url when initializing SQSClient
 - CHORE: documentation about advanced usages
 - FIX: typo in iniesta configs REGIO -> REGION
 

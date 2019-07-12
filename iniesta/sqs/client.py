@@ -26,7 +26,8 @@ class SQSClient:
     handlers = {} # dict with {event: handler function}
     queue_urls = {} # dict with {queue_name: queue_url}
 
-    def __init__(self, *, queue_name=None, retry_count=None, lock_timeout=None):
+    def __init__(self, *, queue_name=None, endpoint_url=None, region_name=None,
+                 retry_count=None, lock_timeout=None):
         """
         Initializes a SQSClient instance
 
@@ -37,13 +38,14 @@ class SQSClient:
         :raise KeyError: If application was not initialized with one of the initialization methods.
         """
         self.queue_name = self.default_queue_name() if queue_name is None else queue_name
+        self.region_name = region_name or BotoSession.aws_default_region
         try:
             self.queue_url = self.queue_urls[self.queue_name]
         except KeyError:
             error_logger.error(f"Please use initialize to initialize queue: {queue_name}")
             raise
 
-        self.endpoint_url = getattr(settings, 'INIESTA_SQS_ENDPOINT_URL', None)
+        self.endpoint_url = endpoint_url or getattr(settings, 'INIESTA_SQS_ENDPOINT_URL', None)
         self._filters = None
 
         retry_count = retry_count or settings.INIESTA_LOCK_RETRY_COUNT
@@ -66,7 +68,7 @@ class SQSClient:
         )
 
     @classmethod
-    async def initialize(cls, *, queue_name=None):
+    async def initialize(cls, *, queue_name=None, endpoint_url=None, region_name=None):
         """
         The initialization classmethod that should be first run before any subsequent SQSClient initializations.
 
@@ -76,7 +78,7 @@ class SQSClient:
         """
         session = BotoSession.get_session()
 
-        endpoint_url = getattr(settings, 'INIESTA_SQS_ENDPOINT_URL', None)
+        endpoint_url = endpoint_url or getattr(settings, 'INIESTA_SQS_ENDPOINT_URL', None)
 
         if queue_name is None:
             queue_name = cls.default_queue_name()
@@ -85,7 +87,7 @@ class SQSClient:
         if queue_name not in cls.queue_urls:
             try:
                 async with session.create_client('sqs',
-                                                 region_name=BotoSession.aws_default_region,
+                                                 region_name=region_name or BotoSession.aws_default_region,
                                                  endpoint_url=endpoint_url,
                                                  aws_access_key_id=BotoSession.aws_access_key_id,
                                                  aws_secret_access_key=BotoSession.aws_secret_access_key) as client:
@@ -140,7 +142,7 @@ class SQSClient:
         Confirms correct permissions are in place.
         """
         session = BotoSession.get_session()
-        async with session.create_client('sqs', region_name=BotoSession.aws_default_region,
+        async with session.create_client('sqs', region_name=self.region_name or BotoSession.aws_default_region,
                                          endpoint_url=self.endpoint_url,
                                          aws_access_key_id=BotoSession.aws_access_key_id,
                                          aws_secret_access_key=BotoSession.aws_secret_access_key) as client:
@@ -274,7 +276,7 @@ class SQSClient:
     async def _poll(self):
         session = BotoSession.get_session()
         client = session.create_client('sqs',
-                                       region_name=BotoSession.aws_default_region,
+                                       region_name=self.region_name,
                                        endpoint_url=self.endpoint_url,
                                        aws_access_key_id=BotoSession.aws_access_key_id,
                                        aws_secret_access_key=BotoSession.aws_secret_access_key)
