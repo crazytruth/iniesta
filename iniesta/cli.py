@@ -31,8 +31,11 @@ def mock_application():
     service_settings = {c: getattr(config, c) for c in dir(config) if c.isupper()}
     service_settings.update({"INIESTA_DRY_RUN": True})
 
-    for k,v in service_settings.items():
-        setattr(settings, k, v)
+    if settings.configured:
+        for k,v in service_settings.items():
+            setattr(settings, k, v)
+    else:
+        settings.configure(service_settings)
 
     Iniesta.load_config(settings)
 

@@ -1,7 +1,8 @@
 import pytest
 
 from insanic.conf import settings
-from iniesta import cli
+from iniesta import cli, Iniesta
+from iniesta.choices import InitializationTypes
 from click.testing import CliRunner
 
 from .infra import SNSInfra
@@ -34,6 +35,34 @@ class TestCommands(SNSInfra):
         assert output[6] == "RESPONSE INFO"
         assert output[7].startswith('Message ID : ')
         assert output[8].startswith('Message Length : ')
+
+
+    @pytest.mark.parametrize(
+        'initialization_type',
+        (
+            None,
+            InitializationTypes.QUEUE_POLLING,
+            InitializationTypes.EVENT_POLLING,
+            InitializationTypes.SNS_PRODUCER,
+            InitializationTypes.CUSTOM,
+            InitializationTypes.QUEUE_POLLING | InitializationTypes.SNS_PRODUCER,
+            InitializationTypes.QUEUE_POLLING | InitializationTypes.EVENT_POLLING,
+            InitializationTypes.QUEUE_POLLING | InitializationTypes.SNS_PRODUCER,
+            InitializationTypes.QUEUE_POLLING | InitializationTypes.CUSTOM,
+
+        )
+    )
+    def test_initialization_type(self, runner, initialization_type, monkeypatch):
+        Iniesta.initialization_type = initialization_type
+
+        result = runner.invoke(cli.initialization_type)
+
+        assert result.exit_code == 0, result.output
+
+        output = result.output.strip().split('\n').pop()
+
+        assert output == str(initialization_type)
+
 
     # def test_publish_fail(self, runner, sns_endpoint_url, monkeypatch):
     #     # monkeypatch.setattr(settings, 'INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN', create_global_sns['TopicArn'])
