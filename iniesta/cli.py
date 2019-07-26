@@ -29,7 +29,7 @@ def mock_application():
     config = importlib.import_module(f"{service_name}.config")
 
     service_settings = {c: getattr(config, c) for c in dir(config) if c.isupper()}
-    service_settings.update({"INIESTA_DRY_RUN": True})
+    # service_settings.update({"INIESTA_DRY_RUN": True})
 
     if settings.configured:
         for k,v in service_settings.items():
