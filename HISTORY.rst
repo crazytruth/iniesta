@@ -3,7 +3,7 @@
 History
 -------
 
-0.2.4 (unreleased)
+0.2.4 (2019-07-26)
 ++++++++++++++++++
 
 - FIX: fixes initialization-type command to bypass vault configuration
