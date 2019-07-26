@@ -264,6 +264,7 @@ The returned values are:
 - ``QUEUE_POLLING``
 - ``EVENT_POLLING``
 - ``SNS_PRODUCER``
+- ``CUSTOM``
 
 or a combination of them.
 
