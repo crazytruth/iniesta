@@ -11,3 +11,4 @@ exclude *.png
 prune test
 prune docs
 exclude .python-version
+exclude .readthedocs.yml
