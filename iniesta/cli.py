@@ -11,6 +11,7 @@ import sys
 import os
 
 from insanic.conf import settings
+from insanic.conf import LazySettings
 
 from iniesta import Iniesta
 from iniesta.sns import SNSClient
@@ -29,21 +30,18 @@ def mock_application():
     config = importlib.import_module(f"{service_name}.config")
 
     service_settings = {c: getattr(config, c) for c in dir(config) if c.isupper()}
-    # service_settings.update({"INIESTA_DRY_RUN": True})
+    service_settings.update({"INIESTA_DRY_RUN": True})
 
-    if settings.configured:
-        for k,v in service_settings.items():
-            setattr(settings, k, v)
-    else:
-        settings.configure(service_settings)
+    new_settings = LazySettings()
+    new_settings.configure(service_settings)
 
-    Iniesta.load_config(settings)
+    Iniesta.load_config(new_settings)
 
     class Dummy:
         config = None
 
     dummy = Dummy()
-    setattr(dummy, 'config', settings)
+    setattr(dummy, 'config', new_settings)
 
     with open(f"{service_name}/app.py", "r") as file:
         for line in file:
