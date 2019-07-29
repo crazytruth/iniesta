@@ -6,7 +6,7 @@ History
 0.2.5 (unreleased)
 ++++++++++++++++++
 
-- Nothing changed yet.
+- FIX: fixes initialization-type command to not check resources
 
 
 0.2.4 (2019-07-26)
