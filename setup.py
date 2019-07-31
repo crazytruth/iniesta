@@ -59,7 +59,7 @@ setup(
     extras_require={
         "development": test_requires + ['sphinx', 'sphinx_rtd_theme'],
         "release": ["zest.releaser[recommended]", "flake8"],
-        "cli": ["Click>=6.0"]
+        "cli": ["Click>=7.0"]
     },
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',
