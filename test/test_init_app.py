@@ -1,13 +1,17 @@
 import botocore
 import pytest
 
+from itertools import permutations
+
 from insanic import Insanic
 from insanic.conf import settings
+
 from iniesta import Iniesta, config
+from iniesta.choices import InitializationTypes
 from iniesta.exceptions import ImproperlyConfigured
 from iniesta.listeners import IniestaListener
 
-
+from .conftest import ALL_INITIALIZATION_TYPES
 from .infra import SNSInfra
 
 init_methods_for_producer = ['init_producer',
@@ -55,29 +59,19 @@ class TestIniestaInitialize(InitializeFixtures):
                 l.append(f)
         return l
 
-    @pytest.mark.parametrize('init_method_name', init_methods_for_producer)
-    def test_init_producer(self, insanic_application, init_method_name, set_sns_arn):
+    @pytest.mark.parametrize('initialization_types', ALL_INITIALIZATION_TYPES)
+    async def test_init_app(self, monkeypatch, insanic_application, set_sns_arn, initialization_types):
+        monkeypatch.setattr(settings, "INIESTA_INITIALIZATION_TYPE", initialization_types, raising=False)
 
-        init_method = getattr(Iniesta, init_method_name)
-        init_method(insanic_application)
+        Iniesta.init_app(insanic_application)
+        final = 0
+        for i in initialization_types:
+            final |= InitializationTypes[i]
 
-        assert Iniesta.initialization_type is not None
+        assert Iniesta.initialization_type == final
         assert Iniesta.config_imported is True
 
-        listener_functions = self._get_function_list(
-            insanic_application.listeners['after_server_start']
-        )
-
-        assert IniestaListener.after_server_start_producer_check in listener_functions
-
-    @pytest.mark.parametrize('init_method_name', init_methods_for_queue_polling)
-    def test_init_queue_polling(self, insanic_application, init_method_name):
-
-        init_method = getattr(Iniesta, init_method_name)
-        init_method(insanic_application)
-
-        assert Iniesta.initialization_type is not None
-        assert Iniesta.config_imported is True
+        checks = []
 
         after_server_start_listener_functions = self._get_function_list(
             insanic_application.listeners['after_server_start']
@@ -87,67 +81,74 @@ class TestIniestaInitialize(InitializeFixtures):
             insanic_application.listeners['before_server_stop']
         )
 
-        assert IniestaListener.after_server_start_start_queue_polling in after_server_start_listener_functions
-        assert IniestaListener.before_server_stop_stop_polling in before_server_stop_listener_functions
+        if InitializationTypes.SNS_PRODUCER.name in initialization_types:
 
-    @pytest.mark.parametrize('init_method_name', init_methods_for_event_polling)
-    def test_init_event_polling(self, insanic_application, init_method_name, set_sns_arn):
+            assert IniestaListener.after_server_start_producer_check in after_server_start_listener_functions
 
-        init_method = getattr(Iniesta, init_method_name)
-        init_method(insanic_application)
+            checks.append(InitializationTypes.SNS_PRODUCER.name)
 
-        assert Iniesta.initialization_type is not None
-        assert Iniesta.config_imported is True
+        if InitializationTypes.QUEUE_POLLING.name in initialization_types:
 
-        after_server_start_listener_functions = self._get_function_list(
-            insanic_application.listeners['after_server_start']
+            assert IniestaListener.after_server_start_start_queue_polling in after_server_start_listener_functions
+            assert IniestaListener.before_server_stop_stop_polling in before_server_stop_listener_functions
+
+            checks.append(InitializationTypes.QUEUE_POLLING.name)
+
+        if InitializationTypes.EVENT_POLLING.name in initialization_types:
+
+            assert IniestaListener.after_server_start_event_polling in after_server_start_listener_functions
+            assert IniestaListener.before_server_stop_stop_polling in before_server_stop_listener_functions
+
+            checks.append(InitializationTypes.EVENT_POLLING.name)
+
+        if InitializationTypes.CUSTOM.name in initialization_types:
+            checks.append(InitializationTypes.CUSTOM.name)
+
+        assert sorted(checks) == sorted(initialization_types)
+
+    @pytest.mark.parametrize(
+        'invalid_initialization_types',
+        (
+            "",
+            "asdad",
+            1213,
+            None,
+            {"a": "b"},
+            {"QUEUE_POLLING": "asd"},
+            {"asdad": "QUEUE_POLLING"},
+            ["asd"],
+            ["QUEUE_POLLING", "BAD"]
         )
-        before_server_stop_listener_functions = self._get_function_list(
-            insanic_application.listeners['before_server_stop']
-        )
+    )
+    def test_init_app_invalid_choice(self, monkeypatch, insanic_application, invalid_initialization_types, set_sns_arn):
+        print(invalid_initialization_types)
+        monkeypatch.setattr(settings, "INIESTA_INITIALIZATION_TYPE", invalid_initialization_types, raising=False)
 
-        assert IniestaListener.after_server_start_event_polling in after_server_start_listener_functions
-        assert IniestaListener.before_server_stop_stop_polling in before_server_stop_listener_functions
+        with pytest.raises(ImproperlyConfigured):
+            Iniesta.init_app(insanic_application)
 
-    @pytest.mark.parametrize('init_method_name', init_methods_for_producing_and_consuming)
-    def test_init_passing_and_receiving(self, insanic_application, init_method_name, set_sns_arn):
+    @pytest.mark.parametrize('initialization_types', ALL_INITIALIZATION_TYPES)
+    def test_trying_to_initialize_more_than_once(self, insanic_application, set_sns_arn, initialization_types,
+                                                 monkeypatch):
+        monkeypatch.setattr(settings, 'INIESTA_INITIALIZATION_TYPE', initialization_types, raising=False)
 
-        init_method = getattr(Iniesta, init_method_name)
+        Iniesta.init_app(insanic_application)
 
-        init_method(insanic_application)
+        if initialization_types is not ():
+            with pytest.raises(ImproperlyConfigured,
+                               match="Iniesta has already been initialized!"):
+                Iniesta.init_app(insanic_application)
+        else:
+            assert Iniesta.initialization_type == 0
+            Iniesta.init_app(insanic_application)
 
-        assert Iniesta.initialization_type is not None
-        assert Iniesta.config_imported is True
 
-        after_server_start_listener_functions = self._get_function_list(
-            insanic_application.listeners['after_server_start']
-        )
-        before_server_stop_listener_functions = self._get_function_list(
-            insanic_application.listeners['before_server_stop']
-        )
-
-        assert IniestaListener.after_server_start_producer_check in after_server_start_listener_functions
-        assert IniestaListener.after_server_start_event_polling in after_server_start_listener_functions
-        assert IniestaListener.before_server_stop_stop_polling in before_server_stop_listener_functions
-
-    @pytest.mark.parametrize('first_init', init_methods)
-    @pytest.mark.parametrize('second_init', init_methods)
-    def test_trying_to_initialize_more_than_once(self, insanic_application, first_init, second_init, set_sns_arn):
-        first_init_method = getattr(Iniesta, first_init)
-        first_init_method(insanic_application)
-
-        with pytest.raises(ImproperlyConfigured,
-                           match="Iniesta has already been initialized!"):
-            second_init_method = getattr(Iniesta, second_init)
-            second_init_method(insanic_application)
-
-    @pytest.mark.parametrize('init_method_name', init_methods_for_producer + init_methods_for_event_polling)
-    async def test_insanic_run_sns_not_set(self, insanic_application, test_server, init_method_name):
-
-        init_method = getattr(Iniesta, init_method_name)
+    async def test_insanic_run_sns_not_set(self, insanic_application, test_server, monkeypatch):
+        monkeypatch.setattr(settings, 'INIESTA_INITIALIZATION_TYPE', ['EVENT_POLLING',
+                                                                      'SNS_PRODUCER'], raising=False)
 
         with pytest.raises(ImproperlyConfigured) as exc_info:
-            init_method(insanic_application)
+            Iniesta.init_app(insanic_application)
             await test_server(insanic_application)
 
         assert 'INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN' in str(exc_info.value)
@@ -161,11 +162,13 @@ class TestIniestaInitialize(InitializeFixtures):
     @pytest.mark.parametrize('init_method_name', init_methods_for_producer + init_methods_for_event_polling)
     async def test_insanic_run_bad_topic_arn(self, insanic_application, test_server,
                                              topic_arn, init_method_name, monkeypatch):
+        monkeypatch.setattr(settings, 'INIESTA_INITIALIZATION_TYPE', ['EVENT_POLLING',
+                                                                      'SNS_PRODUCER'], raising=False)
 
         monkeypatch.setattr(settings, 'INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN', topic_arn)
 
-        init_method = getattr(Iniesta, init_method_name)
-        init_method(insanic_application)
+
+        Iniesta.init_app(insanic_application)
         with pytest.raises(botocore.exceptions.ClientError) as exc_info:
             await test_server(insanic_application)
 
@@ -181,7 +184,9 @@ class TestInitializeWithSNS(SNSInfra):
 
     @pytest.fixture()
     def insanic_application(self, sns_endpoint_url, sqs_endpoint_url,
-                            set_global_topic_arn, set_filters):
+                            set_global_topic_arn, set_filters, monkeypatch):
+        monkeypatch.setattr(settings, 'INIESTA_INITIALIZATION_TYPE', ['EVENT_POLLING', 'SNS_PRODUCER'], raising=False)
+
         app = Insanic("xavi")
         Iniesta.init_app(app)
         yield app

@@ -6,7 +6,9 @@ History
 0.2.6 (unreleased)
 ++++++++++++++++++
 
-- Nothing changed yet.
+- BREAKING: removed all `prepare_*` initialization methods. They were confusing me.
+- BREAKING: removed all `init_*` other than `init_app`
+- BREAKING: must include `INIESTA_INITIALIZATION_TYPE` in your config.
 
 
 0.2.5 (2019-07-29)
