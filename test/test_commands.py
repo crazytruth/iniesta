@@ -1,12 +1,12 @@
 import pytest
 
 from insanic.conf import settings
-from iniesta import cli, Iniesta
+from iniesta import cli, Iniesta, config
 from iniesta.choices import InitializationTypes
 from click.testing import CliRunner
 
 from .infra import SNSInfra
-
+from .conftest import ALL_INITIALIZATION_TYPES
 
 
 class TestCommands(SNSInfra):
@@ -38,22 +38,11 @@ class TestCommands(SNSInfra):
 
 
     @pytest.mark.parametrize(
-        'initialization_type',
-        (
-            None,
-            InitializationTypes.QUEUE_POLLING,
-            InitializationTypes.EVENT_POLLING,
-            InitializationTypes.SNS_PRODUCER,
-            InitializationTypes.CUSTOM,
-            InitializationTypes.QUEUE_POLLING | InitializationTypes.SNS_PRODUCER,
-            InitializationTypes.QUEUE_POLLING | InitializationTypes.EVENT_POLLING,
-            InitializationTypes.QUEUE_POLLING | InitializationTypes.SNS_PRODUCER,
-            InitializationTypes.QUEUE_POLLING | InitializationTypes.CUSTOM,
-
-        )
+        'initialization_types',
+        ALL_INITIALIZATION_TYPES
     )
-    def test_initialization_type(self, runner, initialization_type, monkeypatch):
-        Iniesta.initialization_type = initialization_type
+    def test_initialization_type(self, runner, initialization_types, monkeypatch):
+        monkeypatch.setattr(config, "INIESTA_INITIALIZATION_TYPE", initialization_types, raising=False)
 
         result = runner.invoke(cli.initialization_type)
 
@@ -61,7 +50,12 @@ class TestCommands(SNSInfra):
 
         output = result.output.strip().split('\n').pop()
 
-        assert output == str(initialization_type)
+        it = InitializationTypes(0)
+        for i in initialization_types:
+            it |= InitializationTypes[i]
+
+        assert output == str(it)
+
 
 
     # def test_publish_fail(self, runner, sns_endpoint_url, monkeypatch):
