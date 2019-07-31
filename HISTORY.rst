@@ -3,7 +3,7 @@
 History
 -------
 
-0.2.6 (unreleased)
+0.3.0 (2019-07-31)
 ++++++++++++++++++
 
 - BREAKING: removed all `prepare_*` initialization methods. They were confusing me.
