@@ -65,7 +65,6 @@ class _Iniesta(object):
                 delattr(settings_object, c)
         self.config_imported = False
 
-
     def _order_initialization_type(self, settings_object):
         try:
             init_types = settings_object.INIESTA_INITIALIZATION_TYPE
@@ -81,8 +80,6 @@ class _Iniesta(object):
 
         if not isinstance(settings_object.INIESTA_INITIALIZATION_TYPE, (list, tuple)):
             raise ImproperlyConfigured("INIESTA_INITIALIZATION_TYPE type is invalid. Must be list or tuple!")
-
-
 
     def init_app(self, app):
         """
@@ -103,7 +100,6 @@ class _Iniesta(object):
             initialization_method = self.INITIALIZATION_MAPPING[choice]
             initialization_method(app)
             self.initialization_type = choice
-
 
     def _init_custom(self, app):
         """
@@ -155,16 +151,16 @@ class _Iniesta(object):
 
     def _init_event_polling(self, app):
         """
-       Check if global arn exists
-       Need to check if filters are 0 to avoid receiving all messages
-       Load configs
-       Attaches listeners
-       Check if queue exists (initialize)
-       Check subscriptions
-       Check permissions
+        Check if global arn exists
+        Need to check if filters are 0 to avoid receiving all messages
+        Load configs
+        Attaches listeners
+        Check if queue exists (initialize)
+        Check subscriptions
+        Check permissions
 
-       :param app: An instance of an insanic application
-       """
+        :param app: An instance of an insanic application
+        """
 
         self.load_config(app.config)
         if not app.config.INIESTA_DRY_RUN:

@@ -56,13 +56,15 @@ To install:
 
 To setup, we need a couple settings.
 
+- **`INIESTA_INITIALIZATION_TYPE`**: (list[string]) List of initialization types defined by `InitializationTypes` enum.
+    - Choices: "QUEUE_POLLING", "EVENT_POLLING", "SNS_PRODUCER", "CUSTOM"
+- **`INIESTA_SQS_CONSUMER_FILTERS`**: (list) default:[] A list of filters for the message events your service will want to receive.
 - `INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN`: (string) default:None The global sns arn.
-- `INIESTA_SQS_CONSUMER_FILTERS`: (list) default:[] A list of filters for the message events your service will want to receive.
 - `INIESTA_SNS_EVENT_KEY`: (string) default:iniesta_pass The key the event will be published under. Will NOT want to change this.
 - `INIESTA_LOCK_RETRY_COUNT`: (int) default:1 Lock retry count when lock is unable to be required
 - `INIESTA_LOCK_TIMEOUT`: (int) default:10s Timeout for the lock when received
-- `INIESTA_INITIALIZATION_TYPE`: (list[string]) List of initialization types defined by `InitializationTypes` enum.
-    - Choices: "QUEUE_POLLING", "EVENT_POLLING", "SNS_PRODUCER", "CUSTOM"
+
+**NOTE**: The configurations in **bold** must be placed in your application `config.py`. Must **NOT** be set in vault.
 
 .. inclusion-marker-do-not-remove-usage-start
 
