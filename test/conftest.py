@@ -1,9 +1,12 @@
 import pytest
 import uuid
+from itertools import permutations
 
 from insanic import Insanic
 from insanic.conf import settings
+from insanic.functional import empty
 from iniesta.app import Iniesta
+from iniesta.choices import InitializationTypes
 from iniesta.sessions import BotoSession
 
 
@@ -84,5 +87,11 @@ def reset_boto_session():
 @pytest.fixture(autouse=True)
 def reset_iniesta():
     yield
-    Iniesta.initialization_type = None
+
+    Iniesta._initialization_type = empty
     Iniesta.config_imported = False
+
+
+# do not use this code in production, only for tests!!!
+# very inefficient. creates a flat list with lists
+ALL_INITIALIZATION_TYPES = sum([list(permutations([i.name for i in InitializationTypes], i)) for i in range(4)], [])

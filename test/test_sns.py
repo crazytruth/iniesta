@@ -316,8 +316,9 @@ class TestSNSClient(SNSInfra):
     async def insanic_application_with_event_polling(self, monkeypatch, insanic_application, create_global_sns, filter_policy):
         monkeypatch.setattr(settings, 'INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN', create_global_sns['TopicArn'],
                             raising=False)
+        monkeypatch.setattr(settings, 'INIESTA_INITIALIZATION_TYPE', ['SNS_PRODUCER'], raising=False)
         from iniesta import Iniesta
-        Iniesta.init_producer(insanic_application)
+        Iniesta.init_app(insanic_application)
 
         client = await SNSClient.initialize(
             topic_arn=create_global_sns['TopicArn']

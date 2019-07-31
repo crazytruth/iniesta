@@ -56,12 +56,17 @@ To install:
 
 To setup, we need a couple settings.
 
+- **`INIESTA_INITIALIZATION_TYPE`** : (list[string]) List of initialization types defined by `InitializationTypes` enum.
+
+    - Choices: "QUEUE_POLLING", "EVENT_POLLING", "SNS_PRODUCER", "CUSTOM"
+
+- **`INIESTA_SQS_CONSUMER_FILTERS`**: (list) default:[] A list of filters for the message events your service will want to receive.
 - `INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN`: (string) default:None The global sns arn.
-- `INIESTA_SQS_CONSUMER_FILTERS`: (list) default:[] A list of filters for the message events your service will want to receive.
 - `INIESTA_SNS_EVENT_KEY`: (string) default:iniesta_pass The key the event will be published under. Will NOT want to change this.
 - `INIESTA_LOCK_RETRY_COUNT`: (int) default:1 Lock retry count when lock is unable to be required
 - `INIESTA_LOCK_TIMEOUT`: (int) default:10s Timeout for the lock when received
 
+**NOTE**: The configurations in **bold** must be placed in your application `config.py`. Must **NOT** be set in vault.
 
 .. inclusion-marker-do-not-remove-usage-start
 
@@ -75,15 +80,15 @@ For services that only need to produce SNS messages:
 
 .. code-block:: python
 
+    # in your application config.py
+    INIESTA_INITIALIZATION_TYPE = ["SNS_PRODUCER"]
+
     # in producing service named "producer"
     from insanic import Insanic
     from iniesta import Iniesta
 
     app = Insanic('producer')
-    Iniesta.init_producer(app)
-    # or
-    # init_producer and prepare_for_delivering_through_pass are equivalent
-    Iniesta.prepare_for_delivering_through_pass(app)
+    Iniesta.init_app(app)
 
 To produce messages:
 
@@ -157,14 +162,15 @@ Initial setup for event polling:
 
 .. code-block:: python
 
+    # in your config.py
+    INIESTA_INITIALIZATION_TYPE = ['EVENT_POLLING']
+
     # in service named receiver
     from insanic import Insanic
     from iniesta import Iniesta
 
     app = Insanic('receiver')
-    Iniesta.init_event_polling(app)
-    # or
-    Iniesta.prepare_for_receiving_through_pass(app)
+    Iniesta.init_app(app)
 
 
 For creating a handler for a message:
@@ -187,14 +193,16 @@ Queue polling is only for receiving messages from an SQS, and does not get messa
 
 .. code-block:: python
 
+    #in config.py
+    INIESTA_INITIALIZATION_TYPE = ['QUEUE_POLLING']
+
     # in service named receiver
     from insanic import Insanic
     from iniesta import Iniesta
 
     app = Insanic('receiver')
-    Iniesta.init_queue_polling(app)
-    # or
-    Iniesta.prepare_for_receiving_short_pass(app)
+    Iniesta.init_app(app)
+
 
 For creating a default handler:
 
@@ -261,12 +269,15 @@ To get initialization type
 
 The returned values are:
 
-- ``QUEUE_POLLING``
-- ``EVENT_POLLING``
-- ``SNS_PRODUCER``
-- ``CUSTOM``
+- ``InitializationTypes.0``
+- ``InitializationTypes.QUEUE_POLLING``
+- ``InitializationTypes.EVENT_POLLING``
+- ``InitializationTypes.SNS_PRODUCER``
+- ``InitializationTypes.CUSTOM``
 
-or a combination of them.
+or a combination of them. eg
+
+- ``InitializationTypes.SNS_PRODUCER|EVENT_POLLING``
 
 
 To get filter policies

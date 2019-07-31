@@ -1,3 +1,7 @@
+from types import MappingProxyType
+
+from insanic.functional import empty
+
 from . import config
 from .choices import InitializationTypes
 from .exceptions import ImproperlyConfigured
@@ -9,19 +13,35 @@ class _Iniesta(object):
 
     def __init__(self):
         self.config_imported = False
-        self.initialization_type = None
+        self._initialization_type = empty
 
-    def __getattribute__(self, item):
-        if item.startswith('init_'):
-            if self.initialization_type is not None:
-                raise ImproperlyConfigured('Iniesta has already been initialized!')
-        return super().__getattribute__(item)
+        self.INITIALIZATION_MAPPING = MappingProxyType(
+            {
+                InitializationTypes.QUEUE_POLLING: self._init_queue_polling,
+                InitializationTypes.EVENT_POLLING: self._init_event_polling,
+                InitializationTypes.SNS_PRODUCER: self._init_producer,
+                InitializationTypes.CUSTOM: self._init_custom
+            }
+        )
 
-    def set_initialization_type(self, value):
-        if self.initialization_type is None:
-            self.initialization_type = value
-        else:
-            self.initialization_type = self.initialization_type | value
+    @property
+    def initialization_type(self):
+        final = InitializationTypes(0)
+        if self._initialization_type is empty:
+            return final
+
+        for it in self._initialization_type:
+            final |= it
+        return final
+
+    @initialization_type.setter
+    def initialization_type(self, value):
+        if not isinstance(value, InitializationTypes):
+            raise ValueError("Must be an InitializationTypes choice.")
+
+        if self._initialization_type is empty:
+            self._initialization_type = []
+        self._initialization_type.append(value)
 
     def check_global_arn(self, settings_object):
         if settings_object.INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN is None:
@@ -45,49 +65,57 @@ class _Iniesta(object):
                 delattr(settings_object, c)
         self.config_imported = False
 
+    def _order_initialization_type(self, settings_object):
+        try:
+            init_types = settings_object.INIESTA_INITIALIZATION_TYPE
+            return sorted([InitializationTypes[it] for it in init_types])
+        except (KeyError, TypeError):
+            raise ImproperlyConfigured(f"{str(init_types)} is"
+                                       f"an invalid initialization type. "
+                                       f"Choices are {', '.join(str(i) for i in self.INITIALIZATION_MAPPING.keys())}")
+
+    def _validate_initialization_type(self, settings_object):
+        if settings_object.INIESTA_INITIALIZATION_TYPE is None:
+            raise ImproperlyConfigured("Please configure INIESTA_INITIALIZATION_TYPE in your config!")
+
+        if not isinstance(settings_object.INIESTA_INITIALIZATION_TYPE, (list, tuple)):
+            raise ImproperlyConfigured("INIESTA_INITIALIZATION_TYPE type is invalid. Must be list or tuple!")
+
     def init_app(self, app):
         """
-        Initializes the application with producing and event polling.
+        Initializes the application depending on INIESTA_INITIALIZATION_TYPE set in settings
 
         :param app: An instance of an insanic application
         """
-        self._init_producer_and_polling(app)
+        if self._initialization_type is not empty:
+            raise ImproperlyConfigured("Iniesta has already been initialized!")
 
-    def _init_producer_and_polling(self, app):
-        self._init_producer(app)
-        self._init_event_polling(app)
+        self.load_config(app.config)
 
-    def init_custom(self, app):
-        """
-        Initializes the application for custom use.
+        self._validate_initialization_type(app.config)
 
-        :param app: An instance of an insanic application
-        :return:
-        """
-        self._init_custom(app)
+        initialization_types = self._order_initialization_type(app.config)
+
+        for choice in initialization_types:
+            initialization_method = self.INITIALIZATION_MAPPING[choice]
+            initialization_method(app)
+            self.initialization_type = choice
 
     def _init_custom(self, app):
         """
+        Initializes the application for custom use.
         load configs
 
         :param app:
         :return:
         """
         self.load_config(app.config)
-        self.set_initialization_type(InitializationTypes.CUSTOM)
 
-    def init_producer(self, app):
+    def _init_producer(self, app):
         """
         Initializes the application with only SNS producing capabilities.
         Checks if the global sns arn exists. If not fails running of application.
 
-        :param app: An instance of an insanic application
-        :return:
-        """
-        self._init_producer(app)
-
-    def _init_producer(self, app):
-        """
         check if global arn is set
         load configs
 
@@ -103,9 +131,8 @@ class _Iniesta(object):
             listener = IniestaListener()
             app.register_listener(listener.after_server_start_producer_check,
                                   'after_server_start')
-        self.set_initialization_type(InitializationTypes.SNS_PRODUCER)
 
-    def init_queue_polling(self, app):
+    def _init_queue_polling(self, app):
         """
         Basic sqs queue polling without the need for checking subscriptions
         Load configs
@@ -113,9 +140,6 @@ class _Iniesta(object):
 
         :param app: An instance of an insanic application
         """
-        self._init_queue_polling(app)
-
-    def _init_queue_polling(self, app):
 
         self.load_config(app.config)
         if not app.config.INIESTA_DRY_RUN:
@@ -124,9 +148,8 @@ class _Iniesta(object):
                                   'after_server_start')
             app.register_listener(listener.before_server_stop_stop_polling,
                                   'before_server_stop')
-        self.set_initialization_type(InitializationTypes.QUEUE_POLLING)
 
-    def init_event_polling(self, app):
+    def _init_event_polling(self, app):
         """
         Check if global arn exists
         Need to check if filters are 0 to avoid receiving all messages
@@ -138,9 +161,6 @@ class _Iniesta(object):
 
         :param app: An instance of an insanic application
         """
-        self._init_event_polling(app)
-
-    def _init_event_polling(self, app):
 
         self.load_config(app.config)
         if not app.config.INIESTA_DRY_RUN:
@@ -158,39 +178,6 @@ class _Iniesta(object):
                                   'after_server_start')
             app.register_listener(listener.before_server_stop_stop_polling,
                                   'before_server_stop')
-        self.set_initialization_type(InitializationTypes.EVENT_POLLING)
-
-    def prepare_for_delivering_through_pass(self, app):
-        """
-        Alias of init_producer
-
-        :param app: An instance of an insanic application
-        """
-        self.init_producer(app)
-
-    def prepare_for_receiving_short_pass(self, app):
-        """
-        Alias of init_queue_polling
-
-        :param app: An instance of an insanic application
-        """
-        self.init_queue_polling(app)
-
-    def prepare_for_receiving_through_pass(self, app):
-        """
-        Alias of init_event_polling
-
-        :param app: An instance of an insanic application
-        """
-        self.init_event_polling(app)
-
-    def prepare_for_passing_and_receiving(self, app):
-        """
-        Alias of init_app
-
-        :param app: An instance of an insanic application
-        """
-        self.init_app(app)
 
     def filter_policies(self):
         from insanic.conf import settings

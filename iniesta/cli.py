@@ -14,6 +14,7 @@ from insanic.conf import settings
 from insanic.conf import LazySettings
 
 from iniesta import Iniesta
+from iniesta.choices import InitializationTypes
 from iniesta.sns import SNSClient
 from iniesta.sqs import SQSClient
 
@@ -25,15 +26,16 @@ def cli():
     logging.disable(logging.CRITICAL)
     sys.path.insert(0, '')
 
-def mock_application():
-    service_name = os.getcwd().split('/')[-1]
+def mock_application(service_name=None):
+    service_name = service_name or os.getcwd().split('/')[-1]
     config = importlib.import_module(f"{service_name}.config")
 
-    service_settings = {c: getattr(config, c) for c in dir(config) if c.isupper()}
-    service_settings.update({"INIESTA_DRY_RUN": True})
+    # service_settings = {c: getattr(config, c) for c in dir(config) if c.isupper()}
+    # service_settings.update({"INIESTA_DRY_RUN": True})
+    setattr(config, 'INIESTA_DRY_RUN', True)
 
     new_settings = LazySettings()
-    new_settings.configure(service_settings)
+    new_settings.configure(config)
 
     Iniesta.load_config(new_settings)
 
@@ -52,11 +54,23 @@ def mock_application():
                 exec(line)
                 break
 
+def get_loaded_config():
+    service_name = os.getcwd().split('/')[-1]
+    config = importlib.import_module(f"{service_name}.config")
+
+    temp_settings = LazySettings()
+    temp_settings.configure(config)
+    # Iniesta.load_config(temp_settings)
+    return temp_settings
+
 @cli.command()
 def initialization_type():
-    mock_application()
-    from iniesta import Iniesta
-    print(Iniesta.initialization_type)
+    temp_settings = get_loaded_config()
+    initialization_type = InitializationTypes(0)
+    for it in temp_settings.INIESTA_INITIALIZATION_TYPE:
+        initialization_type |= InitializationTypes[it]
+
+    print(initialization_type)
 
 @cli.command()
 def filter_policies():
