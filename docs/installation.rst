@@ -22,6 +22,6 @@ Iniesta also includes various extras::
     $ pip install 'iniesta[release]' # in zsh
     # install necessary packages for releasing (eg. zest.releaser)
 
-    $ pip install iniesta[cli]
-    $ pip install 'iniesta[cli]'
+    $ pip install iniesta[cli] # in bash
+    $ pip install 'iniesta[cli]' # in zsh
     # install packages for cli
