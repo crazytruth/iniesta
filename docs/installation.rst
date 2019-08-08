@@ -14,13 +14,14 @@ Or, if you have virtualenvwrapper installed::
 
 Iniesta also includes various extras::
 
-    $ pip install iniesta[development]
+    $ pip install iniesta[development] # in bash
+    $ pip install 'iniesta[development]' # in zsh
     # installs test packages + sphinx + sphinx_rtd_theme
 
-    $ pip install iniesta[release]
+    $ pip install iniesta[release] # in bash
+    $ pip install 'iniesta[release]' # in zsh
     # install necessary packages for releasing (eg. zest.releaser)
 
     $ pip install iniesta[cli]
-    # install packages for cli in bash shell
     $ pip install 'iniesta[cli]'
-    # install packages for cli in zsh shell
+    # install packages for cli
