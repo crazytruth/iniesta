@@ -245,7 +245,8 @@ Setup
 
 .. code-block:: bash
 
-    $ pip install iniesta[cli]
+    $ pip install iniesta[cli] # shell environment: bash
+    $ pip install 'iniesta[cli]' # shell environment: zsh
 
     $ iniesta --help
     Usage: iniesta [OPTIONS] COMMAND [ARGS]...
