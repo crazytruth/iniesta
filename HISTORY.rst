@@ -3,7 +3,7 @@
 History
 -------
 
-0.3.1 (unreleased)
+0.3.1 (2019-09-25)
 ++++++++++++++++++
 
 - FIX: issue when settings doesn't have access to vault #51
