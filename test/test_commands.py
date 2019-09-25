@@ -1,6 +1,9 @@
 import pytest
+import ujson as json
 
 from insanic.conf import settings
+from insanic.functional import empty
+
 from iniesta import cli, Iniesta, config
 from iniesta.choices import InitializationTypes
 from click.testing import CliRunner
@@ -41,7 +44,7 @@ class TestCommands(SNSInfra):
         'initialization_types',
         ALL_INITIALIZATION_TYPES
     )
-    def test_initialization_type(self, runner, initialization_types, monkeypatch):
+    def test_initialization_type(self, runner, initialization_types, monkeypatch, uninitialize_settings):
         monkeypatch.setattr(config, "INIESTA_INITIALIZATION_TYPE", initialization_types, raising=False)
 
         result = runner.invoke(cli.initialization_type)
@@ -55,6 +58,30 @@ class TestCommands(SNSInfra):
             it |= InitializationTypes[i]
 
         assert output == str(it)
+
+    @pytest.fixture()
+    def uninitialize_settings(self):
+        wrapped = settings._wrapped
+
+        settings._wrapped = empty
+
+        yield
+
+        settings._wrapped = wrapped
+
+    def test_filter_policies(self, runner, monkeypatch, uninitialize_settings):
+        from iniesta import config
+        monkeypatch.setattr(config, 'INIESTA_SQS_CONSUMER_FILTERS', ["help.me"])
+
+        result = runner.invoke(cli.filter_policies)
+
+        assert result.exit_code == 0, result.output
+
+        output = json.loads(result.output.strip().split('\n').pop())
+        assert "iniesta_pass" in output
+        assert output['iniesta_pass'] == ["help.me"]
+
+
 
 
 
