@@ -6,7 +6,8 @@ History
 0.3.1 (unreleased)
 ++++++++++++++++++
 
-- Nothing changed yet.
+- FIX: issue when settings doesn't have access to vault #51
+- CHORE: adds test for filter policy command
 
 
 0.3.0 (2019-07-31)
