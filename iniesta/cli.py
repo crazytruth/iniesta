@@ -54,11 +54,19 @@ def mock_application(service_name=None):
                 exec(line)
                 break
 
+    return dummy
+
 def get_loaded_config():
-    service_name = os.getcwd().split('/')[-1]
-    config = importlib.import_module(f"{service_name}.config")
+    from insanic.exceptions import ImproperlyConfigured
 
     temp_settings = LazySettings()
+    try:
+        service_name = temp_settings._infer_app_name()
+    except ImproperlyConfigured:
+        service_name = os.getcwd().split('/')[-1].split('-')[-1]
+
+    config = importlib.import_module(f"{service_name}.config")
+
     temp_settings.configure(config)
     # Iniesta.load_config(temp_settings)
     return temp_settings
@@ -74,11 +82,13 @@ def initialization_type():
 
 @cli.command()
 def filter_policies():
-    mock_application()
+    app = mock_application()
     from iniesta.utils import filter_list_to_filter_policies
 
-    policies = filter_list_to_filter_policies(settings.INIESTA_SNS_EVENT_KEY,
-                                              settings.INIESTA_SQS_CONSUMER_FILTERS)
+    # policies = filter_list_to_filter_policies(app.config.INIESTA_SNS_EVENT_KEY,
+    #                                           app.config.INIESTA_SQS_CONSUMER_FILTERS)
+    policies = filter_list_to_filter_policies(app.config.INIESTA_SNS_EVENT_KEY,
+                                              app.config.INIESTA_SQS_CONSUMER_FILTERS)
     print(json.dumps(policies))
 
 @cli.command()
