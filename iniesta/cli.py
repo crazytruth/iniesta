@@ -27,7 +27,7 @@ def cli():
     sys.path.insert(0, '')
 
 def mock_application(service_name=None):
-    service_name = service_name or os.getcwd().split('/')[-1]
+    service_name = service_name or os.getcwd().split('/')[-1].split('-')[-1]
     config = importlib.import_module(f"{service_name}.config")
 
     # service_settings = {c: getattr(config, c) for c in dir(config) if c.isupper()}
