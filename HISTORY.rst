@@ -6,7 +6,7 @@ History
 0.3.2 (unreleased)
 ++++++++++++++++++
 
-- Nothing changed yet.
+- FIX: issue in cli where service_name wasn't being parsed properly
 
 
 0.3.1 (2019-09-25)
