@@ -245,8 +245,8 @@ Setup
 
 .. code-block:: bash
 
-    $ pip install iniesta[cli] # shell environment: bash
-    $ pip install 'iniesta[cli]' # shell environment: zsh
+    $ pip install iniesta[cli]   # bash
+    $ pip install "iniesta[cli]" # zsh
 
     $ iniesta --help
     Usage: iniesta [OPTIONS] COMMAND [ARGS]...
@@ -338,16 +338,19 @@ Development
 
 .. code-block:: bash
 
-    pip install .[development]
+    $ pip install .[development]   # bash
+    $ pip install ".[development]" # zsh
     # or
-    pip install iniesta[development]
+    $ pip install iniesta[development]   # bash
+    $ pip install "iniesta[development]" # zsh
 
 Testing
 =======
 
 .. code-block:: bash
 
-    $ pip install .[development]
+    $ pip install .[development]   # bash
+    $ pip install ".[development]" # zsh
     $ pytest
     # with coverage
     $ pytest --cov=iniesta --cov-report term-missing:skip-covered
@@ -359,7 +362,8 @@ To view documentation
 
     $ git clone https://github.com/MyMusicTaste/iniesta.git
     $ cd iniesta
-    $ pip install .[development]
+    $ pip install .[development]   # bash
+    $ pip install ".[development]" # zsh
     $ cd docs
     $ make html
     # files will be in /path/to/iniesta/docs/_build
