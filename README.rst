@@ -365,6 +365,12 @@ Requirements:
         aws_secret_access_key = YOUR_SECRET_ACCESS_KEY
     ..
 
+    **For Credentials, You have better set it as Environment Variable in your IDE.**
+    You can refer to AWS credentials for AWS CLI document_.
+
+    .. _document : https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html
+
+
 -  AWS Policy Settings
     You need to add policies related to actions of SQS and SNS, the following actions needs to be added in your IAM.
 
@@ -403,18 +409,16 @@ Requirements:
         "Resource": "arn:aws:sns:ap-northeast-1:<aws_account_id>:test-test-global-*"
     ..
 
+- Install all test requirements using commands below:
 
--  Install all test requirements using commands below:
+.. code-block:: bash
 
-    .. code-block:: bash
+    $ pip install .[development]    # bash
+    $ pip install ".[development]"  # zsh
+    # or
+    $ pip install iniesta[development]  # bash
+    $ pip install "iniesta[development]"  # zsh
 
-        $ pip install .[development]    # bash
-        $ pip install ".[development]"  # zsh
-        # or
-        $ pip install iniesta[development]  # bash
-        $ pip install "iniesta[development]"  # zsh
-   
-    ..
 
 Testing
 =======
