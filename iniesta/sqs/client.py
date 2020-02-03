@@ -348,12 +348,20 @@ class SQSClient:
     @classmethod
     def add_handler(cls, handler, event):
         """
-        Method for manually declaring a handler for an event.
+        Method for manually declaring a handler for event(s).
 
         :param handler: a function to execute
-        :param event: the event the function is attached to
+        :param event: the event(or a list of event) the function is attached to
         :return:
         """
+        if isinstance(event, str):
+            cls._add_handler(handler, event)
+        elif isinstance(event, list) or isinstance(event, tuple):
+            for e in event:
+                cls._add_handler(handler, e)
+
+    @classmethod
+    def _add_handler(cls, handler, event):
         if event in cls.handlers.keys():
             raise ValueError(f"Handler for event [{event}] already exists.")
 
