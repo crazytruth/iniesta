@@ -433,6 +433,17 @@ class TestSQSHandlerRegistration:
             def handler_without_arguments():
                 return "one"
 
+    def test_bind_one_handler_to_multiple_events(self):
+        events = ["fooed", "bared"]
+
+        @SQSClient.handler(events)
+        def handler(*args, **kwargs):
+            print(args)
+            print(**kwargs)
+
+        for e in events:
+            assert e in SQSClient.handlers
+
 
 class TestClientCreateMessage:
     @pytest.fixture(scope='function')
