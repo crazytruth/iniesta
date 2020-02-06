@@ -414,7 +414,7 @@ Requirements:
         "Resource": "arn:aws:sns:ap-northeast-1:<aws_account_id>:test-test-global-*"
     ..
 
-- Install all test requirements using commands below:
+Install all test requirements using commands below:
 
 .. code-block:: bash
 
