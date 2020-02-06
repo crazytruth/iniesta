@@ -240,7 +240,7 @@ Commands
 
 Several commands to help testing. All commands start with ``iniesta``.
 
-**For z-shell, you need to add DOUBLE QUOTES("") to the command if it belongs square bracket([]).**
+For z-shell, you need to add ``Double Quotes("")`` to the command if it belongs ``Square Bracket([])``.
 
 Setup
 *****
