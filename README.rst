@@ -414,13 +414,15 @@ Requirements:
         "Resource": "arn:aws:sns:ap-northeast-1:<aws_account_id>:test-test-global-*"
     ..
 
-Install all test requirements using commands below:
+- Test Requirements
 
-.. code-block:: bash
+    Install all test requirements using commands below:
 
-    $ pip install .[development]
-    # or
-    $ pip install iniesta[development]
+    .. code-block:: bash
+
+        $ pip install .[development]
+        # or
+        $ pip install iniesta[development]
 
 
 Testing
@@ -428,7 +430,7 @@ Testing
 
 .. code-block:: bash
 
-    $ pip install .[development] 
+    $ pip install .[development]
     $ pytest
     # with coverage
     $ pytest --cov=iniesta --cov-report term-missing:skip-covered
