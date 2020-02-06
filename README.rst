@@ -428,7 +428,7 @@ Testing
 
 .. code-block:: bash
 
-    $ pip install .[development]   # bash
+    $ pip install .[development] 
     $ pytest
     # with coverage
     $ pytest --cov=iniesta --cov-report term-missing:skip-covered
@@ -440,7 +440,7 @@ To view documentation
 
     $ git clone https://github.com/MyMusicTaste/iniesta.git
     $ cd iniesta
-    $ pip install .[development]   # bash
+    $ pip install .[development]
     $ cd docs
     $ make html
     # files will be in /path/to/iniesta/docs/_build
