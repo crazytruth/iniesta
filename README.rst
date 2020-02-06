@@ -350,8 +350,10 @@ Requirements:
 
         [default]
         region = ap-northeast-1
+
         [s3]
         calling_format = boto.s3.connection.OrdinaryCallingFormat
+
         [profile mmt-msa]
         region = us-east-1
         output = json
