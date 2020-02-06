@@ -238,15 +238,16 @@ There are two paths for handling the message
 Commands
 ========
 
-Several commands to help testing. All commands start with ``iniesta``
+Several commands to help testing. All commands start with ``iniesta``.
+
+**For z-shell, you need to add DOUBLE QUOTES("") to the command if it belongs square bracket([]).**
 
 Setup
 *****
 
 .. code-block:: bash
 
-    $ pip install iniesta[cli]   # bash
-    $ pip install "iniesta[cli]" # zsh
+    $ pip install iniesta[cli]
 
     $ iniesta --help
     Usage: iniesta [OPTIONS] COMMAND [ARGS]...
@@ -366,13 +367,15 @@ Requirements:
     ..
 
     **For Credentials, You have better set it as Environment Variable in your IDE.**
+
     You can refer to AWS credentials for AWS CLI document_.
 
     .. _document : https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html
 
 
 -  AWS Policy Settings
-    You need to add policies related to actions of SQS and SNS, the following actions needs to be added in your IAM.
+    You need to add policies related to actions of SQS and SNS.
+    The following actions need to be added in your IAM.
 
     SQS:
 
@@ -413,11 +416,9 @@ Requirements:
 
 .. code-block:: bash
 
-    $ pip install .[development]    # bash
-    $ pip install ".[development]"  # zsh
+    $ pip install .[development]
     # or
-    $ pip install iniesta[development]  # bash
-    $ pip install "iniesta[development]"  # zsh
+    $ pip install iniesta[development]
 
 
 Testing
@@ -426,7 +427,6 @@ Testing
 .. code-block:: bash
 
     $ pip install .[development]   # bash
-    $ pip install ".[development]" # zsh
     $ pytest
     # with coverage
     $ pytest --cov=iniesta --cov-report term-missing:skip-covered
@@ -439,7 +439,6 @@ To view documentation
     $ git clone https://github.com/MyMusicTaste/iniesta.git
     $ cd iniesta
     $ pip install .[development]   # bash
-    $ pip install ".[development]" # zsh
     $ cd docs
     $ make html
     # files will be in /path/to/iniesta/docs/_build
