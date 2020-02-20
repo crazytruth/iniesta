@@ -354,11 +354,11 @@ class SQSClient:
         :param event: the event(or a list of event) the function is attached to
         :return:
         """
-        if isinstance(event, str):
-            cls._add_handler(handler, event)
-        elif isinstance(event, list) or isinstance(event, tuple):
+        if isinstance(event, list) or isinstance(event, tuple):
             for e in event:
                 cls._add_handler(handler, e)
+        else:
+            cls._add_handler(handler, event)
 
     @classmethod
     def _add_handler(cls, handler, event):
