@@ -444,6 +444,15 @@ class TestSQSHandlerRegistration:
         for e in events:
             assert e in SQSClient.handlers
 
+    def test_duplication_event_in_event_list(self):
+        events = ["spam", "spam"]
+
+        with pytest.raises(ValueError, match="Duplication found in list of event"):
+            @SQSClient.handler(events)
+            def handler(*args, **kwargs):
+                print(args)
+                print(**kwargs)
+
 
 class TestClientCreateMessage:
     @pytest.fixture(scope='function')
