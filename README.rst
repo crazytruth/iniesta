@@ -238,15 +238,16 @@ There are two paths for handling the message
 Commands
 ========
 
-Several commands to help testing. All commands start with ``iniesta``
+Several commands to help testing. All commands start with ``iniesta``.
+
+For z-shell, you need to add ``Double Quotes("")`` to the command if it belongs ``Square Bracket([])``.
 
 Setup
 *****
 
 .. code-block:: bash
 
-    $ pip install iniesta[cli] # shell environment: bash
-    $ pip install 'iniesta[cli]' # shell environment: zsh
+    $ pip install iniesta[cli]
 
     $ iniesta --help
     Usage: iniesta [OPTIONS] COMMAND [ARGS]...
@@ -335,12 +336,94 @@ Requirements:
 
 Development
 ===========
+To make test environment your local machine,
 
-.. code-block:: bash
+Requirements:
 
-    pip install .[development]
-    # or
-    pip install iniesta[development]
+
+- Environment Variable Settings for AWS
+    You need to add this environment variable file in ``~/.aws/`` directory with following file name.
+
+    In file name ``config``:
+
+    .. code-block:: vim
+
+        [default]
+        region = ap-northeast-1
+
+        [s3]
+        calling_format = boto.s3.connection.OrdinaryCallingFormat
+
+        [profile mmt-msa]
+        region = us-east-1
+        output = json
+    ..
+
+    In file name ``credentials``:
+
+    .. code-block:: vim
+
+        [default]
+        aws_access_key_id = YOUR_ACCESS_KEY_ID
+        aws_secret_access_key = YOUR_SECRET_ACCESS_KEY
+    ..
+
+    **For Credentials, You have better set it as Environment Variable in your IDE.**
+
+    You can refer to AWS credentials for AWS CLI document_.
+
+    .. _document : https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html
+
+
+-  AWS Policy Settings
+    You need to add policies related to actions of SQS and SNS.
+    The following actions need to be added in your IAM.
+
+    SQS:
+
+    .. code-block:: bash
+
+        "Action": [
+                "sqs:DeleteMessage",
+                "sqs:GetQueueUrl",
+                "sqs:DeleteMessageBatch",
+                "sqs:ReceiveMessage",
+                "sqs:DeleteQueue",
+                "sqs:SendMessage",
+                "sqs:GetQueueAttributes",
+                "sqs:CreateQueue",
+                "sqs:SetQueueAttributes"
+            ],
+        "Resource": "arn:aws:sqs:ap-northeast-1:<aws_account_id>:iniesta-test-*"
+    ..
+
+    SNS:
+
+    .. code-block:: bash
+
+        "Action": [
+                    "sns:ListSubscriptionsByTopic",
+                    "sns:Publish",
+                    "sns:GetTopicAttributes",
+                    "sns:DeleteTopic",
+                    "sns:CreateTopic",
+                    "sns:Subscribe",
+                    "sns:Unsubscribe",
+                    "sns:GetSubscriptionAttributes"
+                ],
+        "Resource": "arn:aws:sns:ap-northeast-1:<aws_account_id>:test-test-global-*"
+    ..
+
+
+- Test Requirements
+    Install all test requirements using commands below:
+
+    .. code-block:: bash
+
+        $ pip install .[development]
+        # or
+        $ pip install iniesta[development]
+
 
 Testing
 =======
