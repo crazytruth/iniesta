@@ -176,6 +176,7 @@ Initial setup for event polling:
 For creating a handler for a message:
 
 .. code-block:: python
+
     # with decorator
     # in consuming service named "receiver"
     from iniesta.sqs import SQSClient
@@ -186,6 +187,7 @@ For creating a handler for a message:
         return True
 
 .. code-block:: python
+
     # without decorator
     # in consuming service named "receiver"
     from iniesta.sqs import SQSClient
@@ -199,6 +201,7 @@ For creating a handler for a message:
 For binding a handler for multiple event type
 
 .. code-block:: python
+
     # with decorator
     # in consuming service named "receiver"
     from iniesta.sqs import SQSClient
@@ -209,6 +212,7 @@ For binding a handler for multiple event type
         return True
 
 .. code-block:: python
+
     # without decorator
     # in consuming service named "receiver"
     from iniesta.sqs import SQSClient
@@ -406,5 +410,4 @@ View release history `here <HISTORY.rst>`_
 
 TODO
 ----
-
 
