@@ -177,6 +177,7 @@ For creating a handler for a message:
 
 .. code-block:: python
 
+    # with decorator
     # in consuming service named "receiver"
     from iniesta.sqs import SQSClient
 
@@ -184,6 +185,43 @@ For creating a handler for a message:
     def event_happened_handler(message):
         # .. do some logic ..
         return True
+
+.. code-block:: python
+
+    # without decorator
+    # in consuming service named "receiver"
+    from iniesta.sqs import SQSClient
+
+    def event_happened_handler(message):
+        # .. do some logic ..
+        return True
+
+    SQSClient.add_handler(handler=event_happened_handler, event='EventHappened.producer')
+
+For binding a handler for multiple event type
+
+.. code-block:: python
+
+    # with decorator
+    # in consuming service named "receiver"
+    from iniesta.sqs import SQSClient
+
+    @SQSClient.handler(['EventHappened.producer1', 'EventHappened.producer2'])
+    def event_happened_handler(message):
+        # .. do some logic ..
+        return True
+
+.. code-block:: python
+
+    # without decorator
+    # in consuming service named "receiver"
+    from iniesta.sqs import SQSClient
+
+    def event_happened_handler(message):
+        # .. do some logic ..
+        return True
+
+    SQSClient.add_handler(handler=event_happened_handler, event=['EventHappened.producer1', 'EventHappened.producer2'])
 
 2. Queue Polling
 
@@ -455,5 +493,4 @@ View release history `here <HISTORY.rst>`_
 
 TODO
 ----
-
 

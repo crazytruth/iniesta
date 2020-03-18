@@ -348,23 +348,47 @@ class SQSClient:
     @classmethod
     def add_handler(cls, handler, event):
         """
-        Method for manually declaring a handler for an event.
+        Method for manually declaring a handler for event(s).
 
         :param handler: a function to execute
-        :param event: the event the function is attached to
+        :param event: the event(or a list of event) the function is attached to
         :return:
         """
+        cls._validate_handler_signature(handler)
+
+        if isinstance(event, list) or isinstance(event, tuple):
+            cls._validate_event_iterable(event)
+            for e in event:
+                cls._add_handler(handler, e)
+        else:
+            cls._validate_event_name(event)
+            cls._add_handler(handler, event)
+
+    @classmethod
+    def _validate_event_iterable(cls, events):
+        if len(set(events)) != len(events):
+            raise ValueError("Duplication found in list of event")
+        for e in events:
+            cls._validate_event_name(e)
+
+    @classmethod
+    def _validate_event_name(cls, event):
         if event in cls.handlers.keys():
             raise ValueError(f"Handler for event [{event}] already exists.")
 
-        args = [key for key in signature(handler).parameters.keys()]
-        if args:
-            cls.handlers.update({event: handler})
-        else:
+    @classmethod
+    def _validate_handler_signature(cls, handler):
+        args = signature(handler).parameters
+
+        if not args:
             raise ValueError(
-                "Required parameter `message` missing "
-                "in the {0}() route?".format(handler.__name__)
+                f"Required parameter `message` missing "
+                f"in the {handler.__name__}() route?"
             )
+
+    @classmethod
+    def _add_handler(cls, handler, event):
+        cls.handlers.update({event: handler})
 
     async def hook_post_receive_message_handler(self): # pragma: no cover
         pass

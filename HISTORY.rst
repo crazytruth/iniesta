@@ -3,10 +3,16 @@
 History
 -------
 
-0.3.3 (unreleased)
+0.3.4 (unreleased)
 ++++++++++++++++++
 
 - Nothing changed yet.
+
+
+0.3.3 (2020-03-18)
+++++++++++++++++++
+
+- FEAT: allow add_handler method to bind multiple events to one handler
 
 
 0.3.2 (2019-09-26)
