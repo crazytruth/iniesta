@@ -49,7 +49,7 @@ setup(
     include_package_data=True,
     install_requires=[
         'insanic',
-        'aiobotocore',
+        'aiobotocore>=0.12.0',
         'aioredlock'
     ],
     tests_require=test_requires,
