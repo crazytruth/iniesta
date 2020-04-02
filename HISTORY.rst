@@ -3,7 +3,7 @@
 History
 -------
 
-0.3.4 (unreleased)
+0.3.4 (2020-04-02)
 ++++++++++++++++++
 
 - CHORE: update for aiobotocore>=0.12.0
