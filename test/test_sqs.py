@@ -11,7 +11,7 @@ from iniesta.sqs import SQSClient
 from iniesta.sqs.client import default
 from iniesta.sqs.message import SQSMessage
 
-from .infra import SQSInfra, InfraBase
+from .infra import SQSInfra
 
 
 class TestSQSClient(SQSInfra):
@@ -28,62 +28,83 @@ class TestSQSClient(SQSInfra):
             MessageAttributes={
                 settings.INIESTA_SNS_EVENT_KEY: {
                     "DataType": "String",
-                    "StringValue": "test_event"
+                    "StringValue": "test_event",
                 }
-            }
+            },
         )
 
     @pytest.fixture
     def queue_message(self, create_service_sqs, sqs_endpoint_url):
-        sqs = boto3.client('sqs', endpoint_url=sqs_endpoint_url,
-                           aws_access_key_id=BotoSession.aws_access_key_id,
-                           aws_secret_access_key=BotoSession.aws_secret_access_key)
-        return self._queue_message(sqs, create_service_sqs['QueueUrl'])
+        sqs = boto3.client(
+            "sqs",
+            endpoint_url=sqs_endpoint_url,
+            aws_access_key_id=BotoSession.aws_access_key_id,
+            aws_secret_access_key=BotoSession.aws_secret_access_key,
+        )
+        return self._queue_message(sqs, create_service_sqs["QueueUrl"])
 
     @pytest.fixture
     def queue_ten_messages(self, create_service_sqs, sqs_endpoint_url):
-        sqs = boto3.client('sqs', endpoint_url=sqs_endpoint_url,
-                           aws_access_key_id=BotoSession.aws_access_key_id,
-                           aws_secret_access_key=BotoSession.aws_secret_access_key)
+        sqs = boto3.client(
+            "sqs",
+            endpoint_url=sqs_endpoint_url,
+            aws_access_key_id=BotoSession.aws_access_key_id,
+            aws_secret_access_key=BotoSession.aws_secret_access_key,
+        )
         messages = []
         for i in range(10):
-            resp = self._queue_message(sqs, create_service_sqs['QueueUrl'], i)
+            resp = self._queue_message(sqs, create_service_sqs["QueueUrl"], i)
             messages.append(resp)
         return messages
 
     def test_sqs_client_initialize_without_initialize_class_method(self):
         with pytest.raises(KeyError):
-            client = SQSClient(queue_name="asd")
+            SQSClient(queue_name="asd")
 
-    async def test_sqs_client_initialize_queue_does_not_exist(self, start_local_aws, sqs_endpoint_url):
-        with pytest.raises(botocore.exceptions.ClientError, match="") as exc_info:
-            client = await SQSClient.initialize(queue_name='asdasdasda')
+    async def test_sqs_client_initialize_queue_does_not_exist(
+        self, start_local_aws, sqs_endpoint_url
+    ):
+        with pytest.raises(botocore.exceptions.ClientError, match=""):
+            await SQSClient.initialize(queue_name="asdasdasda")
 
-    async def test_sqs_client(self, start_local_aws, create_service_sqs, sqs_endpoint_url):
+    async def test_sqs_client(
+        self, start_local_aws, create_service_sqs, sqs_endpoint_url
+    ):
         client = await SQSClient.initialize(queue_name=self.queue_name)
         assert self.queue_name in client.queue_urls[self.queue_name]
-        assert client.queue_url == create_service_sqs['QueueUrl']
+        assert client.queue_url == create_service_sqs["QueueUrl"]
 
     async def test_sqs_handler_function(self):
         @SQSClient.handler("something")
         def handler(*args, **kwargs):
             print(args)
             print(**kwargs)
+
         assert "something" in SQSClient.handlers
 
-    async def test_receive_message(self, start_local_aws, create_service_sqs, sqs_endpoint_url,
-                                   queue_ten_messages, monkeypatch):
+    async def test_receive_message(
+        self,
+        start_local_aws,
+        create_service_sqs,
+        sqs_endpoint_url,
+        queue_ten_messages,
+        monkeypatch,
+    ):
         message_number = []
 
         async def mock_handle_message(self, message):
-            message_number.append(message.body['message_number'])
+            message_number.append(message.body["message_number"])
             return message, message_number
 
         async def mock_hook_post_message_handler(self):
             await self.stop_receiving_messages()
 
-        monkeypatch.setattr(SQSClient, 'hook_post_receive_message_handler', mock_hook_post_message_handler)
-        monkeypatch.setattr(SQSClient, 'handle_message', mock_handle_message)
+        monkeypatch.setattr(
+            SQSClient,
+            "hook_post_receive_message_handler",
+            mock_hook_post_message_handler,
+        )
+        monkeypatch.setattr(SQSClient, "handle_message", mock_handle_message)
 
         client = await SQSClient.initialize(queue_name=self.queue_name)
         client.start_receiving_messages()
@@ -95,7 +116,14 @@ class TestSQSClient(SQSInfra):
 
         await client.lock_manager.destroy()
 
-    async def test_receive_message_with_error(self, start_local_aws, create_service_sqs, sqs_endpoint_url, queue_ten_messages, monkeypatch):
+    async def test_receive_message_with_error(
+        self,
+        start_local_aws,
+        create_service_sqs,
+        sqs_endpoint_url,
+        queue_ten_messages,
+        monkeypatch,
+    ):
 
         message_number = []
 
@@ -103,7 +131,7 @@ class TestSQSClient(SQSInfra):
             def some_handler():
                 pass
 
-            message_number.append(message.body['message_number'])
+            message_number.append(message.body["message_number"])
             exc = RuntimeError("Some error happened!!")
             exc.message = message
             exc.handler = some_handler
@@ -113,8 +141,12 @@ class TestSQSClient(SQSInfra):
             if len(message_number) == 10:
                 asyncio.Task.current_task().cancel()
 
-        monkeypatch.setattr(SQSClient, 'hook_post_receive_message_handler', mock_hook_post_message_handler)
-        monkeypatch.setattr(SQSClient, 'handle_message', mock_handle_message)
+        monkeypatch.setattr(
+            SQSClient,
+            "hook_post_receive_message_handler",
+            mock_hook_post_message_handler,
+        )
+        monkeypatch.setattr(SQSClient, "handle_message", mock_handle_message)
 
         client = await SQSClient.initialize(queue_name=self.queue_name)
         client.start_receiving_messages()
@@ -126,14 +158,20 @@ class TestSQSClient(SQSInfra):
 
         await client.lock_manager.destroy()
 
-    async def test_handle_default_message(self, start_local_aws, create_service_sqs, sqs_endpoint_url,
-                                          queue_ten_messages, monkeypatch):
+    async def test_handle_default_message(
+        self,
+        start_local_aws,
+        create_service_sqs,
+        sqs_endpoint_url,
+        queue_ten_messages,
+        monkeypatch,
+    ):
         message_tracker = []
 
         @SQSClient.handler()
         def event_handler(message, **kwargs):
             assert message.event == "test_event"
-            message_tracker.append(message.body['message_number'])
+            message_tracker.append(message.body["message_number"])
             return "something"
 
         client = await SQSClient.initialize(queue_name=self.queue_name)
@@ -144,16 +182,25 @@ class TestSQSClient(SQSInfra):
             if len(message_tracker) == 10:
                 await self.stop_receiving_messages()
 
-        monkeypatch.setattr(SQSClient, 'hook_post_receive_message_handler', mock_hook_post_message_handler)
+        monkeypatch.setattr(
+            SQSClient,
+            "hook_post_receive_message_handler",
+            mock_hook_post_message_handler,
+        )
 
         await client._polling_task
 
         assert len(message_tracker) > 0
 
-    async def test_handle_exception(self, start_local_aws, create_service_sqs, sqs_endpoint_url,
-                                    queue_message, monkeypatch, caplog):
-        message_tracker = []
-
+    async def test_handle_exception(
+        self,
+        start_local_aws,
+        create_service_sqs,
+        sqs_endpoint_url,
+        queue_message,
+        monkeypatch,
+        caplog,
+    ):
         @SQSClient.handler()
         def event_handler(message, **kwargs):
             raise Exception("Something bad happened")
@@ -165,24 +212,39 @@ class TestSQSClient(SQSInfra):
         async def mock_hook_post_message_handler(self):
             await self.stop_receiving_messages()
 
-        monkeypatch.setattr(SQSClient, 'hook_post_receive_message_handler', mock_hook_post_message_handler)
+        monkeypatch.setattr(
+            SQSClient,
+            "hook_post_receive_message_handler",
+            mock_hook_post_message_handler,
+        )
 
         await client._polling_task
 
         # assert caplog.records[0].levelname == "ERROR"
         for log_record in caplog.records:
-            if log_record.name == 'sanic.error':
+            if log_record.name == "sanic.error":
                 break
         assert "[INIESTA] Error while handling message:" in log_record.message
-        assert hasattr(log_record, 'sqs_attributes')
-        assert hasattr(log_record, 'sqs_message_body')
-        assert hasattr(log_record, 'sqs_attributes')
-        assert hasattr(log_record, 'sqs_message_id')
+        assert hasattr(log_record, "sqs_attributes")
+        assert hasattr(log_record, "sqs_message_body")
+        assert hasattr(log_record, "sqs_attributes")
+        assert hasattr(log_record, "sqs_message_id")
 
-        assert getattr(caplog.records[0], 'iniesta_pass', caplog.records[0].message) == "test_event"
+        assert (
+            getattr(
+                caplog.records[0], "iniesta_pass", caplog.records[0].message
+            )
+            == "test_event"
+        )
 
-    async def test_handle_message(self, start_local_aws, create_service_sqs, sqs_endpoint_url,
-                                  queue_ten_messages, monkeypatch):
+    async def test_handle_message(
+        self,
+        start_local_aws,
+        create_service_sqs,
+        sqs_endpoint_url,
+        queue_ten_messages,
+        monkeypatch,
+    ):
         """
         SAMPLE MESSAGE FROM AWS SQS
         {
@@ -215,7 +277,7 @@ class TestSQSClient(SQSInfra):
 
         @SQSClient.handler("test_event")
         def event_handler(message, **kwargs):
-            message_tracker.append(message.body['message_number'])
+            message_tracker.append(message.body["message_number"])
             return "something"
 
         client = await SQSClient.initialize(queue_name=self.queue_name)
@@ -226,14 +288,24 @@ class TestSQSClient(SQSInfra):
             if len(message_tracker) == 10:
                 await self.stop_receiving_messages()
 
-        monkeypatch.setattr(SQSClient, 'hook_post_receive_message_handler', mock_hook_post_message_handler)
+        monkeypatch.setattr(
+            SQSClient,
+            "hook_post_receive_message_handler",
+            mock_hook_post_message_handler,
+        )
 
         await client._polling_task
 
         assert len(message_tracker) == 10
 
-    async def test_async_handle_message(self, start_local_aws, create_service_sqs, sqs_endpoint_url,
-                                  queue_ten_messages, monkeypatch):
+    async def test_async_handle_message(
+        self,
+        start_local_aws,
+        create_service_sqs,
+        sqs_endpoint_url,
+        queue_ten_messages,
+        monkeypatch,
+    ):
         """
         SAMPLE MESSAGE FROM AWS SQS
         {
@@ -266,7 +338,7 @@ class TestSQSClient(SQSInfra):
 
         @SQSClient.handler("test_event")
         async def event_handler(message, **kwargs):
-            message_tracker.append(message.body['message_number'])
+            message_tracker.append(message.body["message_number"])
             return "something"
 
         client = await SQSClient.initialize(queue_name=self.queue_name)
@@ -277,19 +349,31 @@ class TestSQSClient(SQSInfra):
             if len(message_tracker) == 10:
                 await self.stop_receiving_messages()
 
-        monkeypatch.setattr(SQSClient, 'hook_post_receive_message_handler', mock_hook_post_message_handler)
+        monkeypatch.setattr(
+            SQSClient,
+            "hook_post_receive_message_handler",
+            mock_hook_post_message_handler,
+        )
 
         await client._polling_task
 
         assert len(message_tracker) == 10
 
-    async def test_handle_message_lock(self, start_local_aws, create_service_sqs, sqs_endpoint_url,
-                                       queue_ten_messages, monkeypatch, redisdb, caplog):
+    async def test_handle_message_lock(
+        self,
+        start_local_aws,
+        create_service_sqs,
+        sqs_endpoint_url,
+        queue_ten_messages,
+        monkeypatch,
+        redisdb,
+        caplog,
+    ):
         message_tracker = []
 
-        @SQSClient.handler('test_event')
+        @SQSClient.handler("test_event")
         def event_handler(message, **kwargs):
-            message_tracker.append(message.body['message_number'])
+            message_tracker.append(message.body["message_number"])
             return "mess"
 
         client = await SQSClient.initialize(queue_name=self.queue_name)
@@ -299,18 +383,30 @@ class TestSQSClient(SQSInfra):
         async def mock_hook_post_message_hander(self):
             await self.stop_receiving_messages()
 
-        monkeypatch.setattr(SQSClient, 'hook_post_receive_message_handler', mock_hook_post_message_hander)
+        monkeypatch.setattr(
+            SQSClient,
+            "hook_post_receive_message_handler",
+            mock_hook_post_message_hander,
+        )
 
         import uuid
+
         message_ids = []
         # set lock
         for m in queue_ten_messages:
-            redisdb.set(SQSClient.lock_key.format(message_id=m['MessageId']), str(uuid.uuid4()))
-            message_ids.append(m['MessageId'])
+            redisdb.set(
+                SQSClient.lock_key.format(message_id=m["MessageId"]),
+                str(uuid.uuid4()),
+            )
+            message_ids.append(m["MessageId"])
 
         await client._polling_task
 
-        logged_messaged_ids = [log.sqs_message_id for log in caplog.records if hasattr(log, 'sqs_message_id')]
+        logged_messaged_ids = [
+            log.sqs_message_id
+            for log in caplog.records
+            if hasattr(log, "sqs_message_id")
+        ]
         for mid in message_ids:
             assert mid in logged_messaged_ids
 
@@ -353,7 +449,6 @@ class TestSQSHandlerRegistration:
         event = "ClassHandler"
 
         class SomeHandler:
-
             @SQSClient.handler(event)
             def handler(self, *args, **kwargs):
                 return "class"
@@ -365,7 +460,6 @@ class TestSQSHandlerRegistration:
         event = "ClassHandler"
 
         class SomeHandler:
-
             @SQSClient.handler(event)
             async def handler(self, *args, **kwargs):
                 return "class"
@@ -374,9 +468,7 @@ class TestSQSHandlerRegistration:
         assert SQSClient.handlers[event] == SomeHandler.handler
 
     def test_sync_class_method_default_handler(self):
-
         class SomeHandler:
-
             @SQSClient.handler
             def handler(self, *args, **kwargs):
                 return "class"
@@ -385,9 +477,7 @@ class TestSQSHandlerRegistration:
         assert SQSClient.handlers[default] == SomeHandler.handler
 
     def test_async_class_method_default_handler(self):
-
         class SomeHandler:
-
             @SQSClient.handler
             async def handler(self, *args, **kwargs):
                 return "class"
@@ -396,7 +486,6 @@ class TestSQSHandlerRegistration:
         assert SQSClient.handlers[default] == SomeHandler.handler
 
     def test_sync_function_default_handler(self):
-
         @SQSClient.handler
         def handler(self, *args, **kwargs):
             return "sync function"
@@ -405,7 +494,6 @@ class TestSQSHandlerRegistration:
         assert SQSClient.handlers[default] == handler
 
     def test_async_function_default_handler(self):
-
         @SQSClient.handler
         async def handler(self, *args, **kwargs):
             return "async function"
@@ -423,12 +511,14 @@ class TestSQSHandlerRegistration:
         assert event in SQSClient.handlers
 
         with pytest.raises(ValueError):
+
             @SQSClient.handler(event)
             def handler_two(*args, **kwargs):
                 return "two"
 
     def test_handler_without_arguments(self):
         with pytest.raises(ValueError):
+
             @SQSClient.handler("something")
             def handler_without_arguments():
                 return "one"
@@ -447,7 +537,10 @@ class TestSQSHandlerRegistration:
     def test_duplication_event_in_event_list(self):
         events = ["spam", "spam"]
 
-        with pytest.raises(ValueError, match="Duplication found in list of event"):
+        with pytest.raises(
+            ValueError, match="Duplication found in list of event"
+        ):
+
             @SQSClient.handler(events)
             def handler(*args, **kwargs):
                 print(args)
@@ -455,9 +548,10 @@ class TestSQSHandlerRegistration:
 
 
 class TestClientCreateMessage:
-    @pytest.fixture(scope='function')
+    @pytest.fixture(scope="function")
     def sqs_client(self, insanic_application):
         from iniesta import Iniesta
+
         Iniesta.load_config(insanic_application.config)
         SQSClient.queue_urls = {SQSClient.default_queue_name(): "hello"}
         client = SQSClient()

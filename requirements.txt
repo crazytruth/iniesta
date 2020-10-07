@@ -1,3 +1,0 @@
-insanic
-aiobotocore
-aioredlock

@@ -6,14 +6,13 @@ from insanic.conf import settings
 
 
 class MessageAttributes(UserDict):
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self['MessageAttributes'] = {}
+        self["MessageAttributes"] = {}
 
     @property
     def message_attributes(self):
-        return self.get('MessageAttributes', {})
+        return self.get("MessageAttributes", {})
 
     def add_event(self, value, *, raw=False):
         if not isinstance(value, str):
@@ -40,34 +39,50 @@ class MessageAttributes(UserDict):
         if not isinstance(attribute_value, str):
             raise ValueError("Value is not a string.")
 
-        self['MessageAttributes'].update({attribute_name: {
-            "DataType": "String",
-            "StringValue": attribute_value
-        }})
+        self["MessageAttributes"].update(
+            {
+                attribute_name: {
+                    "DataType": "String",
+                    "StringValue": attribute_value,
+                }
+            }
+        )
 
     def add_number_attribute(self, attribute_name, attribute_value):
         if not isinstance(attribute_value, (int, float)):
             raise ValueError("Value is not a number.")
 
-        self['MessageAttributes'].update({attribute_name: {
-            "DataType": "Number",
-            "StringValue": str(attribute_value)
-        }})
+        self["MessageAttributes"].update(
+            {
+                attribute_name: {
+                    "DataType": "Number",
+                    "StringValue": str(attribute_value),
+                }
+            }
+        )
 
     def add_list_attribute(self, attribute_name, attribute_value):
         if not isinstance(attribute_value, (list, tuple)):
             raise ValueError("Value is not a list or tuple.")
 
-        self['MessageAttributes'].update({attribute_name: {
-            "DataType": "String.Array",
-            "StringValue": json.dumps(attribute_value)
-        }})
+        self["MessageAttributes"].update(
+            {
+                attribute_name: {
+                    "DataType": "String.Array",
+                    "StringValue": json.dumps(attribute_value),
+                }
+            }
+        )
 
     def add_binary_attribute(self, attribute_name, attribute_value):
         if not isinstance(attribute_value, bytes):
             raise ValueError("Value is not bytes.")
 
-        self['MessageAttributes'].update({attribute_name: {
-            "DataType": "Binary",
-            "BinaryValue": attribute_value
-        }})
+        self["MessageAttributes"].update(
+            {
+                attribute_name: {
+                    "DataType": "Binary",
+                    "BinaryValue": attribute_value,
+                }
+            }
+        )

@@ -13,9 +13,13 @@ class TestSQSMessage(SQSInfra):
     queue_name = "iniesta-test-xavi"
 
     @pytest.fixture
-    def sqs_client(self, insanic_application, create_service_sqs, sqs_endpoint_url):
+    def sqs_client(
+        self, insanic_application, create_service_sqs, sqs_endpoint_url
+    ):
         Iniesta.load_config(insanic_application.config)
-        SQSClient.queue_urls = {SQSClient.default_queue_name(): create_service_sqs['QueueUrl']}
+        SQSClient.queue_urls = {
+            SQSClient.default_queue_name(): create_service_sqs["QueueUrl"]
+        }
         sqs_client = SQSClient()
 
         return sqs_client
@@ -24,7 +28,7 @@ class TestSQSMessage(SQSInfra):
         message = SQSMessage(sqs_client, "message")
 
         assert message.client == sqs_client
-        assert message['MessageBody'] == 'message'
+        assert message["MessageBody"] == "message"
         assert message.message_id is None
         assert message.original_message is None
         assert message.receipt_handle is None
@@ -33,7 +37,7 @@ class TestSQSMessage(SQSInfra):
     def test_message_equality(self, sqs_client):
 
         message1 = SQSMessage(sqs_client, "message1")
-        message2 = SQSMessage(sqs_client, 'message2')
+        message2 = SQSMessage(sqs_client, "message2")
 
         assert message1.message_id is None
         assert message2.message_id is None
@@ -49,7 +53,7 @@ class TestSQSMessage(SQSInfra):
         assert message1 == message2
 
     def test_delay_seconds(self, sqs_client):
-        message = SQSMessage(sqs_client, 'message')
+        message = SQSMessage(sqs_client, "message")
 
         assert message.delay_seconds == 0
 
@@ -65,22 +69,29 @@ class TestSQSMessage(SQSInfra):
 
         with pytest.raises(
             TypeError,
-            match=ERROR_MESSAGES['delay_seconds_type_error'].format(value="a")
+            match=ERROR_MESSAGES["delay_seconds_type_error"].format(value="a"),
         ):
             message.delay_seconds = "a"
 
         with pytest.raises(
-                ValueError,
-                match=ERROR_MESSAGES['delay_seconds_out_of_bounds'].format(value=901)):
+            ValueError,
+            match=ERROR_MESSAGES["delay_seconds_out_of_bounds"].format(
+                value=901
+            ),
+        ):
             message.delay_seconds = 901
 
         with pytest.raises(
-                ValueError,
-                match=ERROR_MESSAGES['delay_seconds_out_of_bounds'].format(value=-1)):
+            ValueError,
+            match=ERROR_MESSAGES["delay_seconds_out_of_bounds"].format(
+                value=-1
+            ),
+        ):
             message.delay_seconds = -1
 
     async def test_send(self, create_service_sqs, sqs_client):
         import uuid
+
         random_uuid = uuid.uuid4().hex
 
         message = SQSMessage(sqs_client, random_uuid)
@@ -95,17 +106,23 @@ class TestSQSMessage(SQSInfra):
 
         # try get message from queue
 
-        sqs_boto_client = boto3.client('sqs', region_name=BotoSession.aws_default_region, endpoint_url=sqs_client.endpoint_url,
-                                       aws_access_key_id=BotoSession.aws_access_key_id,
-                                       aws_secret_access_key=BotoSession.aws_secret_access_key)
+        sqs_boto_client = boto3.client(
+            "sqs",
+            region_name=BotoSession.aws_default_region,
+            endpoint_url=sqs_client.endpoint_url,
+            aws_access_key_id=BotoSession.aws_access_key_id,
+            aws_secret_access_key=BotoSession.aws_secret_access_key,
+        )
         sqs_message = sqs_boto_client.receive_message(
             QueueUrl=sqs_client.queue_url,
-            AttributeNames=['All'],
-            MessageAttributeNames=['All']
+            AttributeNames=["All"],
+            MessageAttributeNames=["All"],
         )
 
         assert sqs_message is not None
-        received_message = SQSMessage.from_sqs(sqs_client, sqs_message['Messages'][0])
+        received_message = SQSMessage.from_sqs(
+            sqs_client, sqs_message["Messages"][0]
+        )
         assert received_message == message
         assert received_message.body == message.body == random_uuid
 

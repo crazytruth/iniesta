@@ -1,0 +1,7 @@
+coverage
+pytest
+pytest-cov
+pytest-redis
+pytest-sanic
+moto
+requests

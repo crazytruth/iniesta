@@ -23,11 +23,18 @@ class SQSClient:
     endpoint_url = None
     lock_key = "sqs:event:{message_id}"
 
-    handlers = {} # dict with {event: handler function}
-    queue_urls = {} # dict with {queue_name: queue_url}
+    handlers = {}  # dict with {event: handler function}
+    queue_urls = {}  # dict with {queue_name: queue_url}
 
-    def __init__(self, *, queue_name=None, endpoint_url=None, region_name=None,
-                 retry_count=None, lock_timeout=None):
+    def __init__(
+        self,
+        *,
+        queue_name=None,
+        endpoint_url=None,
+        region_name=None,
+        retry_count=None,
+        lock_timeout=None,
+    ):
         """
         Initializes a SQSClient instance
 
@@ -37,15 +44,21 @@ class SQSClient:
 
         :raise KeyError: If application was not initialized with one of the initialization methods.
         """
-        self.queue_name = self.default_queue_name() if queue_name is None else queue_name
+        self.queue_name = (
+            self.default_queue_name() if queue_name is None else queue_name
+        )
         self.region_name = region_name or BotoSession.aws_default_region
         try:
             self.queue_url = self.queue_urls[self.queue_name]
         except KeyError:
-            error_logger.error(f"Please use initialize to initialize queue: {queue_name}")
+            error_logger.error(
+                f"Please use initialize to initialize queue: {queue_name}"
+            )
             raise
 
-        self.endpoint_url = endpoint_url or getattr(settings, 'INIESTA_SQS_ENDPOINT_URL', None)
+        self.endpoint_url = endpoint_url or getattr(
+            settings, "INIESTA_SQS_ENDPOINT_URL", None
+        )
         self._filters = None
 
         retry_count = retry_count or settings.INIESTA_LOCK_RETRY_COUNT
@@ -54,21 +67,26 @@ class SQSClient:
         # TODO: get connection info from insanic get connection
         self.lock_manager = Aioredlock(
             [
-                {"host": settings.REDIS_HOST, "port": settings.REDIS_PORT, "db": int(settings.REDIS_DB)}
+                {
+                    "host": settings.REDIS_HOST,
+                    "port": settings.REDIS_PORT,
+                    "db": int(settings.REDIS_DB),
+                }
             ],
             retry_count=retry_count,
-            lock_timeout=lock_timeout
+            lock_timeout=lock_timeout,
         )
 
     @classmethod
     def default_queue_name(cls):
         return settings.INIESTA_SQS_QUEUE_NAME_TEMPLATE.format(
-            env=settings.MMT_ENV,
-            service_name=settings.SERVICE_NAME
+            env=settings.MMT_ENV, service_name=settings.SERVICE_NAME
         )
 
     @classmethod
-    async def initialize(cls, *, queue_name=None, endpoint_url=None, region_name=None):
+    async def initialize(
+        cls, *, queue_name=None, endpoint_url=None, region_name=None
+    ):
         """
         The initialization classmethod that should be first run before any subsequent SQSClient initializations.
 
@@ -78,7 +96,9 @@ class SQSClient:
         """
         session = BotoSession.get_session()
 
-        endpoint_url = endpoint_url or getattr(settings, 'INIESTA_SQS_ENDPOINT_URL', None)
+        endpoint_url = endpoint_url or getattr(
+            settings, "INIESTA_SQS_ENDPOINT_URL", None
+        )
 
         if queue_name is None:
             queue_name = cls.default_queue_name()
@@ -86,18 +106,20 @@ class SQSClient:
         # check if queue exists
         if queue_name not in cls.queue_urls:
             try:
-                async with session.create_client('sqs',
-                                                 region_name=region_name or BotoSession.aws_default_region,
-                                                 endpoint_url=endpoint_url,
-                                                 aws_access_key_id=BotoSession.aws_access_key_id,
-                                                 aws_secret_access_key=BotoSession.aws_secret_access_key) as client:
+                async with session.create_client(
+                    "sqs",
+                    region_name=region_name or BotoSession.aws_default_region,
+                    endpoint_url=endpoint_url,
+                    aws_access_key_id=BotoSession.aws_access_key_id,
+                    aws_secret_access_key=BotoSession.aws_secret_access_key,
+                ) as client:
                     response = await client.get_queue_url(QueueName=queue_name)
             except botocore.exceptions.ClientError as e:
                 error_message = f"[{e.response['Error']['Code']}]: {e.response['Error']['Message']} {queue_name}"
                 error_logger.critical(error_message)
                 raise
             else:
-                queue_url = response['QueueUrl']
+                queue_url = response["QueueUrl"]
                 cls.queue_urls.update({queue_name: queue_url})
 
         sqs_client = cls(queue_name=queue_name)
@@ -119,47 +141,55 @@ class SQSClient:
         subscription_list = []
         async for subs in subscriptions:
             subscription_list.append(subs)
-            if self.queue_name in subs.get('Endpoint', "").split(":"):
+            if self.queue_name in subs.get("Endpoint", "").split(":"):
                 service_subscriptions = subs
                 break
         else:
-            raise EnvironmentError(f"Unable to find subscription for {settings.SERVICE_NAME}")
+            raise EnvironmentError(
+                f"Unable to find subscription for {settings.SERVICE_NAME}"
+            )
 
         if settings.INIESTA_ASSERT_FILTER_POLICIES:
             # check if filters match specified
             subscription_attributes = await sns_client.get_subscription_attributes(
-                subscription_arn=service_subscriptions['SubscriptionArn']
+                subscription_arn=service_subscriptions["SubscriptionArn"]
             )
 
-            filter_policies = json.loads(subscription_attributes['Attributes'].get('FilterPolicy', '{}'))
+            filter_policies = json.loads(
+                subscription_attributes["Attributes"].get("FilterPolicy", "{}")
+            )
 
             if filter_policies != self.filters:
-                raise AssertionError(f"Subscription filters and current filters are not equivalent. "
-                                     f"{filter_policies} {self.filters}")
+                raise AssertionError(
+                    f"Subscription filters and current filters are not equivalent. "
+                    f"{filter_policies} {self.filters}"
+                )
 
     async def confirm_permission(self):
         """
         Confirms correct permissions are in place.
         """
         session = BotoSession.get_session()
-        async with session.create_client('sqs', region_name=self.region_name or BotoSession.aws_default_region,
-                                         endpoint_url=self.endpoint_url,
-                                         aws_access_key_id=BotoSession.aws_access_key_id,
-                                         aws_secret_access_key=BotoSession.aws_secret_access_key) as client:
+        async with session.create_client(
+            "sqs",
+            region_name=self.region_name or BotoSession.aws_default_region,
+            endpoint_url=self.endpoint_url,
+            aws_access_key_id=BotoSession.aws_access_key_id,
+            aws_secret_access_key=BotoSession.aws_secret_access_key,
+        ) as client:
             policy_attributes = await client.get_queue_attributes(
-                QueueUrl=self.queue_url,
-                AttributeNames=['Policy']
+                QueueUrl=self.queue_url, AttributeNames=["Policy"]
             )
 
         try:
-            policies = json.loads(policy_attributes['Attributes']['Policy'])
-            statement = policies['Statement'][0]
+            policies = json.loads(policy_attributes["Attributes"]["Policy"])
+            statement = policies["Statement"][0]
         except KeyError:
-            raise ImproperlyConfigured('Permissions not found.')
+            raise ImproperlyConfigured("Permissions not found.")
 
         # need "Effect": "Allow", "Action": "SQS:SendMessage"
-        assert statement['Effect'] == "Allow"
-        assert "SQS:SendMessage" in statement['Action']
+        assert statement["Effect"] == "Allow"
+        assert "SQS:SendMessage" in statement["Action"]
         # assert statement['Condition']['ArnEquals']['aws:SourceArn'] == topic_arn
 
     @property
@@ -167,7 +197,7 @@ class SQSClient:
         if self._filters is None:
             self._filters = filter_list_to_filter_policies(
                 settings.INIESTA_SNS_EVENT_KEY,
-                settings.INIESTA_SQS_CONSUMER_FILTERS
+                settings.INIESTA_SQS_CONSUMER_FILTERS,
             )
         return self._filters
 
@@ -207,9 +237,13 @@ class SQSClient:
         lock = None
 
         try:
-            lock = await self.lock_manager.lock(self.lock_key.format(message_id=message.message_id))
+            lock = await self.lock_manager.lock(
+                self.lock_key.format(message_id=message.message_id)
+            )
             if not lock.valid:
-                raise LockError(f"Could not acquire lock for {message.message_id}")
+                raise LockError(
+                    f"Could not acquire lock for {message.message_id}"
+                )
 
             if message.event in self.handlers:
                 handler = self.handlers[message.event]
@@ -252,7 +286,11 @@ class SQSClient:
             "handler_name": handler.__qualname__ if handler else None,
         }
 
-        error_logger.critical(f"[INIESTA] Error while handling message: {str(exc)}", exc_info=exc, extra=extra)
+        error_logger.critical(
+            f"[INIESTA] Error while handling message: {str(exc)}",
+            exc_info=exc,
+            extra=extra,
+        )
 
     async def handle_success(self, client, message):
         """
@@ -264,37 +302,50 @@ class SQSClient:
         """
 
         # if success must delete message from sqs
-        logger.info(f"[INIESTA] Message handled successfully: msg_id={message.message_id}")
-        resp = await client.delete_message(
-            QueueUrl=self.queue_url,
-            ReceiptHandle=message.receipt_handle
+        logger.info(
+            f"[INIESTA] Message handled successfully: msg_id={message.message_id}"
         )
-        logger.debug(f"[INIESTA] Message deleted: msg_id={message.message_id} "
-                         f"receipt_handle={message.receipt_handle}")
+        resp = await client.delete_message(
+            QueueUrl=self.queue_url, ReceiptHandle=message.receipt_handle
+        )
+        logger.debug(
+            f"[INIESTA] Message deleted: msg_id={message.message_id} "
+            f"receipt_handle={message.receipt_handle}"
+        )
         return resp
 
     async def _poll(self):
         session = BotoSession.get_session()
-        client = session.create_client('sqs',
-                                       region_name=self.region_name,
-                                       endpoint_url=self.endpoint_url,
-                                       aws_access_key_id=BotoSession.aws_access_key_id,
-                                       aws_secret_access_key=BotoSession.aws_secret_access_key)
+        client = session.create_client(
+            "sqs",
+            region_name=self.region_name,
+            endpoint_url=self.endpoint_url,
+            aws_access_key_id=BotoSession.aws_access_key_id,
+            aws_secret_access_key=BotoSession.aws_secret_access_key,
+        )
         try:
             while self._loop.is_running() and self._receive_messages:
                 try:
                     response = await client.receive_message(
-                        QueueUrl = self.queue_url,
-                        MaxNumberOfMessages = settings.INIESTA_SQS_RECEIVE_MESSAGE_MAX_NUMBER_OF_MESSAGES,
-                        WaitTimeSeconds = settings.INIESTA_SQS_RECEIVE_MESSAGE_WAIT_TIME_SECONDS,
-                        AttributeNames = ['All'],
-                        MessageAttributeNames = ['All']
+                        QueueUrl=self.queue_url,
+                        MaxNumberOfMessages=settings.INIESTA_SQS_RECEIVE_MESSAGE_MAX_NUMBER_OF_MESSAGES,
+                        WaitTimeSeconds=settings.INIESTA_SQS_RECEIVE_MESSAGE_WAIT_TIME_SECONDS,
+                        AttributeNames=["All"],
+                        MessageAttributeNames=["All"],
                     )
                 except botocore.exceptions.ClientError as e:
-                    error_logger.critical(f"[INIESTA] [{e.response['Error']['Code']}]: {e.response['Error']['Message']}")
+                    error_logger.critical(
+                        f"[INIESTA] [{e.response['Error']['Code']}]: {e.response['Error']['Message']}"
+                    )
                 else:
-                    event_tasks = [asyncio.ensure_future(self.handle_message(SQSMessage.from_sqs(client, message)))
-                                   for message in response.get('Messages', [])]
+                    event_tasks = [
+                        asyncio.ensure_future(
+                            self.handle_message(
+                                SQSMessage.from_sqs(client, message)
+                            )
+                        )
+                        for message in response.get("Messages", [])
+                    ]
 
                     for fut in asyncio.as_completed(event_tasks):
                         # NOTE: must catch CancelledError and raise
@@ -316,7 +367,7 @@ class SQSClient:
             # mainly used for tests
             logger.info("[INIESTA] STOP POLLING")
             return "Stopped"
-        except Exception as e:
+        except Exception:
             if self._receive_messages and self._loop.is_running():
                 error_logger.critical("[INIESTA] POLLING TASK RESTARTING")
                 self._polling_task = self._loop.create_task(self._poll())
@@ -324,7 +375,7 @@ class SQSClient:
         finally:
             await client.close()
 
-        return "Shutdown" # pragma: no cover
+        return "Shutdown"  # pragma: no cover
 
     @classmethod
     def handler(cls, arg=None):
@@ -339,6 +390,7 @@ class SQSClient:
             cls.add_handler(arg, default)
             return arg
         else:
+
             def register_handler(func):
                 cls.add_handler(func, default if arg is None else arg)
                 return func
@@ -390,7 +442,7 @@ class SQSClient:
     def _add_handler(cls, handler, event):
         cls.handlers.update({event: handler})
 
-    async def hook_post_receive_message_handler(self): # pragma: no cover
+    async def hook_post_receive_message_handler(self):  # pragma: no cover
         pass
 
     def create_message(self, message):

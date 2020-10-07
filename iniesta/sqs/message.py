@@ -10,25 +10,24 @@ from iniesta.sessions import BotoSession
 empty = object()
 
 VALID_SEND_MESSAGE_ARGS = [
-    'MessageBody',
-    'DelaySeconds',
-    'MessageAttributes',
-    'MessageDeduplicationId',
-    'MessageGroupId'
+    "MessageBody",
+    "DelaySeconds",
+    "MessageAttributes",
+    "MessageDeduplicationId",
+    "MessageGroupId",
 ]
 
 ERROR_MESSAGES = {
-    "delay_seconds_out_of_bounds": 'Delay Seconds must be between 0 and 900 inclusive. Got {value}.',
-    "delay_seconds_type_error": 'Delay Seconds must be an integer. Got {value}.'
+    "delay_seconds_out_of_bounds": "Delay Seconds must be between 0 and 900 inclusive. Got {value}.",
+    "delay_seconds_type_error": "Delay Seconds must be an integer. Got {value}.",
 }
 
 
 class SQSMessage(MessageAttributes):
-
     def __init__(self, client, message):
         super().__init__()
         self.client = client
-        self['MessageBody'] = message
+        self["MessageBody"] = message
         self.message_id = None
         self.original_message = None
         self.receipt_handle = None
@@ -47,14 +46,16 @@ class SQSMessage(MessageAttributes):
         """
 
         try:
-            message_object = cls(client, message['Body'])
+            message_object = cls(client, message["Body"])
             message_object.original_message = message
-            message_object.message_id = message['MessageId']
-            message_object.receipt_handle = message['ReceiptHandle']
-            message_object.md5_of_body = message['MD5OfBody']
-            message_object.attributes = message['Attributes']
+            message_object.message_id = message["MessageId"]
+            message_object.receipt_handle = message["ReceiptHandle"]
+            message_object.md5_of_body = message["MD5OfBody"]
+            message_object.attributes = message["Attributes"]
 
-            message_object['MessageAttributes'] = message.get('MessageAttributes', {})
+            message_object["MessageAttributes"] = message.get(
+                "MessageAttributes", {}
+            )
         except KeyError as e:
             raise ValueError(f"SQS Message is invalid: {e.args[0]}")
         else:
@@ -68,20 +69,26 @@ class SQSMessage(MessageAttributes):
 
     @property
     def delay_seconds(self):
-        return self.get('DelaySeconds', 0)
+        return self.get("DelaySeconds", 0)
 
     @delay_seconds.setter
     def delay_seconds(self, value):
         if not isinstance(value, int):
-            raise TypeError(ERROR_MESSAGES['delay_seconds_type_error'].format(value=value))
+            raise TypeError(
+                ERROR_MESSAGES["delay_seconds_type_error"].format(value=value)
+            )
         elif value < 0 or value > 900:
-            raise ValueError(ERROR_MESSAGES['delay_seconds_out_of_bounds'].format(value=value))
+            raise ValueError(
+                ERROR_MESSAGES["delay_seconds_out_of_bounds"].format(
+                    value=value
+                )
+            )
 
-        self['DelaySeconds'] = value
+        self["DelaySeconds"] = value
 
     @property
     def raw_body(self):
-        return self['MessageBody']
+        return self["MessageBody"]
 
     @property
     def body(self):
@@ -95,20 +102,25 @@ class SQSMessage(MessageAttributes):
         return self.message_attributes.get(settings.INIESTA_SNS_EVENT_KEY, None)
 
     def checksum_body(self):
-        return hashlib.md5(self['MessageBody'].encode('utf-8')).hexdigest() == self.md5_of_body
+        return (
+            hashlib.md5(self["MessageBody"].encode("utf-8")).hexdigest()
+            == self.md5_of_body
+        )
 
     @property
     def message_attributes(self):
 
         _message_attributes = {}
 
-        for attribute, attribute_value in self['MessageAttributes'].items():
-            data_type = attribute_value['DataType'].split('.', 1)[0]
+        for attribute, attribute_value in self["MessageAttributes"].items():
+            data_type = attribute_value["DataType"].split(".", 1)[0]
 
             if data_type == "Number":
                 data_type = "String"
 
-            _message_attributes.update({attribute: attribute_value[f'{data_type}Value']})
+            _message_attributes.update(
+                {attribute: attribute_value[f"{data_type}Value"]}
+            )
 
         return _message_attributes
 
@@ -120,21 +132,29 @@ class SQSMessage(MessageAttributes):
         """
         session = BotoSession.get_session()
         try:
-            async with session.create_client('sqs', region_name=BotoSession.aws_default_region,
-                                             endpoint_url=self.client.endpoint_url,
-                                             aws_access_key_id=BotoSession.aws_access_key_id,
-                                             aws_secret_access_key=BotoSession.aws_secret_access_key
-                                             ) as client:
-                message = await client.send_message(QueueUrl=self.client.queue_url,
-                                                    **{k:v for k,v in self.items()
-                                                       if k in VALID_SEND_MESSAGE_ARGS})
-                self.message_id = message['MessageId']
-                self.md5_of_body = message['MD5OfMessageBody']
+            async with session.create_client(
+                "sqs",
+                region_name=BotoSession.aws_default_region,
+                endpoint_url=self.client.endpoint_url,
+                aws_access_key_id=BotoSession.aws_access_key_id,
+                aws_secret_access_key=BotoSession.aws_secret_access_key,
+            ) as client:
+                message = await client.send_message(
+                    QueueUrl=self.client.queue_url,
+                    **{
+                        k: v
+                        for k, v in self.items()
+                        if k in VALID_SEND_MESSAGE_ARGS
+                    },
+                )
+                self.message_id = message["MessageId"]
+                self.md5_of_body = message["MD5OfMessageBody"]
                 return self
         except botocore.exceptions.ClientError as e:
-            error_logger.critical(f"[{e.response['Error']['Code']}]: {e.response['Error']['Message']}")
+            error_logger.critical(
+                f"[{e.response['Error']['Code']}]: {e.response['Error']['Message']}"
+            )
             raise
         except Exception:
-            error_logger.exception('Sending SQS message failed.')
+            error_logger.exception("Sending SQS message failed.")
             raise
-

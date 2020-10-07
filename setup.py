@@ -1,76 +1,34 @@
-#!/usr/bin/env python
-
-import os
-import sys
-
+import re
 
 from setuptools import setup, find_packages
 
+readme = open("README.rst").read()
 
-if sys.argv[-1] == 'publish':
-    os.system('python setup.py sdist upload')
-    sys.exit()
+with open("iniesta/__init__.py", encoding="utf8") as f:
+    version = re.search(r'__version__ = "(.*?)"', f.read()).group(1)
 
-readme = open('README.rst').read()
-doclink = """
-Documentation
--------------
-
-The full documentation is at http://iniesta.rtfd.org."""
-history = open('HISTORY.rst').read().replace('.. :changelog:', '')
-
-test_requires = [
-    "coverage",
-    'pytest',
-    "pytest-cov",
-    'pytest-redis',
-    'pytest-sanic',
-    'pytest-cov',
-    'pytest-sugar',
-    "pytest-xdist",
-    "pytest-flake8",
-    'boto3==1.9.99',
-    'localstack==0.8.10',
-    "requests",
-]
-
-version = '0.3.5.dev0'
 
 setup(
-    name='iniesta',
+    name="iniesta",
     version=version,
-    description='Messaging integration for insanic',
-    long_description=readme + '\n\n' + doclink + '\n\n' + history,
-    author='Kwang Jin Kim',
-    author_email='david@mymusictaste.com',
-    url='https://github.com/MyMusicTate/iniesta',
-    packages=find_packages(include=['iniesta',], exclude=['docs', 'tests']),
-    # package_dir={'iniesta': 'iniesta', 'commands': 'commands'},
+    description="Messaging integration for insanic",
+    long_description=readme,
+    author="Kwang Jin Kim",
+    author_email="kwangjinkim@gmail.com",
+    url="https://github.com/crazytruth/iniesta",
+    packages=find_packages(include=["iniesta"], exclude=["docs", "tests"]),
     include_package_data=True,
-    install_requires=[
-        'insanic',
-        'aiobotocore>=0.12.0',
-        'aioredlock'
-    ],
-    tests_require=test_requires,
-    license='MIT',
+    install_requires=["insanic-framework", "aiobotocore>=0.12.0", "aioredlock"],
+    license="MIT",
     zip_safe=False,
-    keywords='iniesta',
-    extras_require={
-        "development": test_requires + ['sphinx', 'sphinx_rtd_theme'],
-        "release": ["zest.releaser[recommended]", "flake8"],
-        "cli": ["Click>=7.0"]
-    },
+    keywords="iniesta",
+    extras_require={"cli": ["Click>=7.0"]},
     classifiers=[
-        'Development Status :: 2 - Pre-Alpha',
-        'Intended Audience :: Developers',
-        'License :: OSI Approved :: MIT License',
-        'Natural Language :: English',
-        'Programming Language :: Python :: 3.6',
+        "Development Status :: 2 - Pre-Alpha",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: MIT License",
+        "Natural Language :: English",
+        "Programming Language :: Python :: 3.6",
     ],
-    entry_points={
-        'console_scripts': [
-            'iniesta=iniesta.cli:cli',
-        ],
-    },
+    entry_points={"console_scripts": ["iniesta=iniesta.cli:cli"]},
 )

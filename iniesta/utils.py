@@ -1,9 +1,8 @@
-
 def filter_list_to_filter_policies(event_key, filter_list):
     processed_filters = []
 
     for filters in filter_list:
-        event = filters.split('.')
+        event = filters.split(".")
         assert len(event) == 2
 
         if event[1] == "*":

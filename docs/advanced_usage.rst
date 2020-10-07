@@ -130,4 +130,3 @@ All we need to create a custom SNSClient and initialize it.
             await message.publish()
 
             return json_responses({}, status=200)
-

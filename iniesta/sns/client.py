@@ -12,7 +12,6 @@ from insanic.log import error_logger, logger
 
 
 class SNSClient:
-
     def __init__(self, topic_arn=None, *, region_name=None, endpoint_url=None):
         """
         initialize client with topic arn and endpoint url
@@ -21,12 +20,16 @@ class SNSClient:
         :param region_name: takes priority or defaults to setings
         :param endpoint_url: takes priority or defaults to settings
         """
-        self.topic_arn = topic_arn or settings.INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN
+        self.topic_arn = (
+            topic_arn or settings.INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN
+        )
         self.region_name = region_name or settings.INIESTA_SNS_REGION_NAME
         self.endpoint_url = endpoint_url or settings.INIESTA_SNS_ENDPOINT_URL
 
     @classmethod
-    async def initialize(cls, *, topic_arn, region_name=None, endpoint_url=None):
+    async def initialize(
+        cls, *, topic_arn, region_name=None, endpoint_url=None
+    ):
         """
         Class method to initialize the SNS Client and confirm the topic exists.
         We needed to do this because of asyncio functionality
@@ -38,16 +41,22 @@ class SNSClient:
         """
 
         try:
-            await cls._confirm_topic(topic_arn, region_name=region_name, endpoint_url=endpoint_url)
+            await cls._confirm_topic(
+                topic_arn, region_name=region_name, endpoint_url=endpoint_url
+            )
         except botocore.exceptions.ClientError as e:
             error_message = f"[{e.response['Error']['Code']}]: {e.response['Error']['Message']} {topic_arn}"
             error_logger.critical(error_message)
             raise
 
-        return cls(topic_arn, region_name=region_name, endpoint_url=endpoint_url)
+        return cls(
+            topic_arn, region_name=region_name, endpoint_url=endpoint_url
+        )
 
     @classmethod
-    async def _confirm_topic(cls, topic_arn, *, region_name=None, endpoint_url=None):
+    async def _confirm_topic(
+        cls, topic_arn, *, region_name=None, endpoint_url=None
+    ):
         """
         Confirm that the topic exists
 
@@ -58,10 +67,13 @@ class SNSClient:
         """
         session = BotoSession.get_session()
 
-        async with session.create_client('sns', region_name=region_name or BotoSession.aws_default_region,
-                                         endpoint_url=endpoint_url or settings.INIESTA_SNS_ENDPOINT_URL,
-                                         aws_access_key_id=BotoSession.aws_access_key_id,
-                                         aws_secret_access_key=BotoSession.aws_secret_access_key) as client:
+        async with session.create_client(
+            "sns",
+            region_name=region_name or BotoSession.aws_default_region,
+            endpoint_url=endpoint_url or settings.INIESTA_SNS_ENDPOINT_URL,
+            aws_access_key_id=BotoSession.aws_access_key_id,
+            aws_secret_access_key=BotoSession.aws_secret_access_key,
+        ) as client:
             await client.get_topic_attributes(TopicArn=topic_arn)
 
     async def _list_subscriptions_by_topic(self, next_token=None):
@@ -73,10 +85,13 @@ class SNSClient:
             query_args.update({"NextToken": next_token})
 
         try:
-            async with session.create_client('sns', region_name=BotoSession.aws_default_region,
-                                             endpoint_url=self.endpoint_url,
-                                             aws_access_key_id=BotoSession.aws_access_key_id,
-                                             aws_secret_access_key=BotoSession.aws_secret_access_key) as client:
+            async with session.create_client(
+                "sns",
+                region_name=BotoSession.aws_default_region,
+                endpoint_url=self.endpoint_url,
+                aws_access_key_id=BotoSession.aws_access_key_id,
+                aws_secret_access_key=BotoSession.aws_secret_access_key,
+            ) as client:
                 return await client.list_subscriptions_by_topic(**query_args)
         except botocore.exceptions.ClientError as e:
             error_message = f"[{e.response['Error']['Code']}]: {e.response['Error']['Message']} {self.topic_arn}"
@@ -99,24 +114,31 @@ class SNSClient:
 
         next_token = True
         while next_token:
-            _subscriptions = await self._list_subscriptions_by_topic(None if next_token is True else next_token)
+            _subscriptions = await self._list_subscriptions_by_topic(
+                None if next_token is True else next_token
+            )
 
-            for _subscription in _subscriptions['Subscriptions']:
+            for _subscription in _subscriptions["Subscriptions"]:
                 yield _subscription
 
-            next_token = _subscriptions.get('NextToken')
+            next_token = _subscriptions.get("NextToken")
 
     async def get_subscription_attributes(self, subscription_arn):
 
         async with BotoSession.get_session().create_client(
-                'sns',
-                region_name=BotoSession.aws_default_region,
-                endpoint_url=self.endpoint_url,
-                aws_access_key_id=BotoSession.aws_access_key_id,
-                aws_secret_access_key=BotoSession.aws_secret_access_key) as client:
-            return await client.get_subscription_attributes(SubscriptionArn=subscription_arn)
+            "sns",
+            region_name=BotoSession.aws_default_region,
+            endpoint_url=self.endpoint_url,
+            aws_access_key_id=BotoSession.aws_access_key_id,
+            aws_secret_access_key=BotoSession.aws_secret_access_key,
+        ) as client:
+            return await client.get_subscription_attributes(
+                SubscriptionArn=subscription_arn
+            )
 
-    def create_message(self, *, event, message, version=1, **message_attributes):
+    def create_message(
+        self, *, event, message, version=1, **message_attributes
+    ):
         """
 
         :param event: the event to publish (will be used to filter)
@@ -125,10 +147,13 @@ class SNSClient:
         :param message_attributes:
         :return:
         """
-        message_payload = SNSMessage.create_message(self, event=event,
-                                                    message=message,
-                                                    version=version,
-                                                    **message_attributes)
+        message_payload = SNSMessage.create_message(
+            self,
+            event=event,
+            message=message,
+            version=version,
+            **message_attributes,
+        )
         return message_payload
 
     def publish_event(self, *, event, version=1, **message_attributes):
@@ -142,9 +167,7 @@ class SNSClient:
         :return:
         """
 
-
         def wrapper(func):
-
             @functools.wraps(func)
             async def wrapped(*args, **kwargs):
 
@@ -159,14 +182,21 @@ class SNSClient:
                         response = await response
 
                     if response.status < 300:
-                        message = self.create_message(event=event, message=response.body.decode(),
-                                                      version=version, **message_attributes)
+                        message = self.create_message(
+                            event=event,
+                            message=response.body.decode(),
+                            version=version,
+                            **message_attributes,
+                        )
                         try:
                             await message.publish()
-                        except Exception as e:
-                            logger.exception("[INIESTA] Something when wrong when publishing. But continuing to serve.")
+                        except Exception:
+                            logger.exception(
+                                "[INIESTA] Something when wrong when publishing. But continuing to serve."
+                            )
 
                     return response
-            return wrapped
-        return wrapper
 
+            return wrapped
+
+        return wrapper

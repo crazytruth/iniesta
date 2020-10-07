@@ -7,5 +7,4 @@ class InitializationTypes(IntFlag):
     EVENT_POLLING = 2  # 0010 = 2
 
     SNS_PRODUCER = 16  # 10000 = 16
-    CUSTOM = 32 # 100000 = 32
-
+    CUSTOM = 32  # 100000 = 32

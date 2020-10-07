@@ -14,59 +14,65 @@ class SNSMessage(MessageAttributes):
 
     def __init__(self, message=""):
         super().__init__()
-        self['Message'] = message
-        self['MessageStructure'] = 'string'
-        self['MessageAttributes'] = {}
+        self["Message"] = message
+        self["MessageStructure"] = "string"
+        self["MessageAttributes"] = {}
 
     @property
     def event(self):
         try:
-            return self.message_attributes[settings.INIESTA_SNS_EVENT_KEY]['StringValue']
+            return self.message_attributes[settings.INIESTA_SNS_EVENT_KEY][
+                "StringValue"
+            ]
         except KeyError:
             return None
 
     @property
     def message(self):
-        return self['Message']
+        return self["Message"]
 
     @message.setter
     def message(self, value):
         if not isinstance(value, str):
             try:
                 value = json.dumps(value)
-            except:
+            except Exception:
                 raise ValueError("Message must be a string.")
 
-        if len(value.encode('utf8')) > self.MAX_BODY_SIZE:
-            raise ValueError(f"Message is too long! Max is {self.MAX_BODY_SIZE} bytes. "
-                             f"{len(value.encode('utf8'))} bytes calculated.")
+        if len(value.encode("utf8")) > self.MAX_BODY_SIZE:
+            raise ValueError(
+                f"Message is too long! Max is {self.MAX_BODY_SIZE} bytes. "
+                f"{len(value.encode('utf8'))} bytes calculated."
+            )
 
-        self['Message'] = value
+        self["Message"] = value
 
     @property
     def size(self):
-        return len(json.dumps(self).encode('utf8'))
+        return len(json.dumps(self).encode("utf8"))
 
     @property
     def subject(self):
-        return self['Subject']
+        return self["Subject"]
 
     @subject.setter
     def subject(self, value):
         if not isinstance(value, str):
             raise ValueError("Subject must be a string.")
-        self['Subject'] = value
+        self["Subject"] = value
 
     @property
     def message_structure(self):
-        return self['MessageStructure']
+        return self["MessageStructure"]
 
     @message_structure.setter
     def message_structure(self, value):
-        if value not in ['json', 'string']:
-            raise ValueError("MessageStructure must either be 'json' or 'string'.")
+        if value not in ["json", "string"]:
+            raise ValueError(
+                "MessageStructure must either be 'json' or 'string'."
+            )
 
-        self['MessageStructure'] = value
+        self["MessageStructure"] = value
 
     async def publish(self):
         """
@@ -77,24 +83,34 @@ class SNSMessage(MessageAttributes):
 
         session = BotoSession.get_session()
         try:
-            async with session.create_client('sns', region_name=BotoSession.aws_default_region,
-                                             endpoint_url=self.client.endpoint_url,
-                                             aws_access_key_id=BotoSession.aws_access_key_id,
-                                             aws_secret_access_key=BotoSession.aws_secret_access_key
-                                             ) as client:
-                message = await client.publish(TopicArn=self.client.topic_arn, **self)
-                logger.debug(f"[INIESTA] Published ({self.event}) with "
-                             f"the following attributes: {self}")
+            async with session.create_client(
+                "sns",
+                region_name=BotoSession.aws_default_region,
+                endpoint_url=self.client.endpoint_url,
+                aws_access_key_id=BotoSession.aws_access_key_id,
+                aws_secret_access_key=BotoSession.aws_secret_access_key,
+            ) as client:
+                message = await client.publish(
+                    TopicArn=self.client.topic_arn, **self
+                )
+                logger.debug(
+                    f"[INIESTA] Published ({self.event}) with "
+                    f"the following attributes: {self}"
+                )
                 return message
         except botocore.exceptions.ClientError as e:
-            error_logger.critical(f"[{e.response['Error']['Code']}]: {e.response['Error']['Message']}")
+            error_logger.critical(
+                f"[{e.response['Error']['Code']}]: {e.response['Error']['Message']}"
+            )
             raise
         except Exception:
             error_logger.exception("Publishing SNS Message Failed!")
             raise
 
     @classmethod
-    def create_message(cls, client, *, event, message, version=1, **message_attributes):
+    def create_message(
+        cls, client, *, event, message, version=1, **message_attributes
+    ):
         """
         Helper method to initialize an event message.
 
@@ -119,7 +135,7 @@ class SNSMessage(MessageAttributes):
             message_object.add_attribute(ma, mv)
 
         message_object.add_event(event)
-        message_object.add_number_attribute('version', version)
+        message_object.add_number_attribute("version", version)
         message_object.client = client
 
         return message_object

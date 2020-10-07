@@ -3,7 +3,6 @@ from iniesta.sqs import SQSClient
 
 
 class IniestaListener:
-
     async def _initialize_sns(self, app):
         app.xavi = await SNSClient.initialize(
             topic_arn=app.config.INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN
@@ -13,8 +12,7 @@ class IniestaListener:
 
         app.messi = await SQSClient.initialize(
             queue_name=app.config.INIESTA_SQS_QUEUE_NAME_TEMPLATE.format(
-                env=app.config.MMT_ENV,
-                service_name=app.config.SERVICE_NAME
+                env=app.config.MMT_ENV, service_name=app.config.SERVICE_NAME
             )
         )
 
@@ -28,7 +26,9 @@ class IniestaListener:
     async def after_server_start_producer_check(self, app, loop=None, **kwargs):
         await self._initialize_sns(app)
 
-    async def after_server_start_start_queue_polling(self, app, loop=None, **kwargs):
+    async def after_server_start_start_queue_polling(
+        self, app, loop=None, **kwargs
+    ):
         await self._initialize_sqs(app)
         self._start_polling(app)
 
@@ -46,7 +46,6 @@ class IniestaListener:
 
         await app.messi.confirm_subscription(
             app.config.INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN,
-
         )
         await app.messi.confirm_permission()
 

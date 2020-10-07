@@ -10,11 +10,13 @@ from iniesta.choices import InitializationTypes
 from iniesta.sessions import BotoSession
 
 
-settings.configure(SERVICE_NAME="iniesta",
-                   GATEWAY_REGISTRATION_ENABLED=False,
-                   MMT_ENV="test",
-                   TRACING_ENABLED=False,
-                   GRPC_SERVE=False)
+settings.configure(
+    SERVICE_NAME="iniesta",
+    GATEWAY_REGISTRATION_ENABLED=False,
+    MMT_ENV="test",
+    TRACING_ENABLED=False,
+    GRPC_SERVE=False,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -52,11 +54,13 @@ def initialize_for_passing_and_receiving(insanic_application):
 def session_id():
     return uuid.uuid4().hex
 
+
 @pytest.fixture(scope="module")
 def module_id():
     return uuid.uuid4().hex
 
-@pytest.fixture(scope='function')
+
+@pytest.fixture(scope="function")
 def function_id():
     return uuid.uuid4().hex
 
@@ -66,14 +70,19 @@ def reset_session():
     yield
     BotoSession.reset_aws_credentials()
 
+
 @pytest.fixture(autouse=True)
 def set_redis_connection_info(redisdb, monkeypatch):
-    port = redisdb.connection_pool.connection_kwargs['path'].split('/')[-1].split('.')[1]
-    db = redisdb.connection_pool.connection_kwargs['db']
+    port = (
+        redisdb.connection_pool.connection_kwargs["path"]
+        .split("/")[-1]
+        .split(".")[1]
+    )
+    db = redisdb.connection_pool.connection_kwargs["db"]
 
-    monkeypatch.setattr(settings, 'REDIS_PORT', int(port))
-    monkeypatch.setattr(settings, 'REDIS_HOST', '127.0.0.1')
-    monkeypatch.setattr(settings, 'REDIS_DB', db)
+    monkeypatch.setattr(settings, "REDIS_PORT", int(port))
+    monkeypatch.setattr(settings, "REDIS_HOST", "127.0.0.1")
+    monkeypatch.setattr(settings, "REDIS_DB", db)
 
 
 @pytest.fixture(autouse=True)
@@ -94,4 +103,10 @@ def reset_iniesta():
 
 # do not use this code in production, only for tests!!!
 # very inefficient. creates a flat list with lists
-ALL_INITIALIZATION_TYPES = sum([list(permutations([i.name for i in InitializationTypes], i)) for i in range(4)], [])
+ALL_INITIALIZATION_TYPES = sum(
+    [
+        list(permutations([i.name for i in InitializationTypes], i))
+        for i in range(4)
+    ],
+    [],
+)

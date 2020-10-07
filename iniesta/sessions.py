@@ -2,7 +2,6 @@ import aiobotocore
 from insanic.conf import settings
 
 
-
 class AWSCredentials(object):
     def __init__(self, type):
         self.value = None
@@ -10,7 +9,9 @@ class AWSCredentials(object):
 
     def __get__(self, instance, owner):
         if self.value is None:
-            self.value = getattr(settings, f'INIESTA_{self.type}', None) or getattr(settings, self.type, None)
+            self.value = getattr(
+                settings, f"INIESTA_{self.type}", None
+            ) or getattr(settings, self.type, None)
         return self.value
 
 
@@ -30,13 +31,12 @@ class BotoSession:
     #
     #     return cls.session.create_client(resource, )
 
-    aws_access_key_id = AWSCredentials('AWS_ACCESS_KEY_ID')
-    aws_secret_access_key = AWSCredentials('AWS_SECRET_ACCESS_KEY')
-    aws_default_region = AWSCredentials('AWS_DEFAULT_REGION')
-
+    aws_access_key_id = AWSCredentials("AWS_ACCESS_KEY_ID")
+    aws_secret_access_key = AWSCredentials("AWS_SECRET_ACCESS_KEY")
+    aws_default_region = AWSCredentials("AWS_DEFAULT_REGION")
 
     @classmethod
     def reset_aws_credentials(cls):
-        cls.aws_access_key_id = AWSCredentials('AWS_ACCESS_KEY_ID')
-        cls.aws_secret_access_key = AWSCredentials('AWS_SECRET_ACCESS_KEY')
-        cls.aws_default_region = AWSCredentials('AWS_DEFAULT_REGION')
+        cls.aws_access_key_id = AWSCredentials("AWS_ACCESS_KEY_ID")
+        cls.aws_secret_access_key = AWSCredentials("AWS_SECRET_ACCESS_KEY")
+        cls.aws_default_region = AWSCredentials("AWS_DEFAULT_REGION")
