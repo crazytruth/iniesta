@@ -37,7 +37,8 @@ class InfraBase:
 
     @pytest.fixture(scope="module")
     def moto_endpoint_url(self):
-        return "http://localhost:5000"
+        # return "http://localhost:5000"
+        return "http://localhost:4566"
 
     @pytest.fixture(autouse=True)
     def set_service_name(self, monkeypatch):

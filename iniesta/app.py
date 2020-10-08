@@ -58,7 +58,7 @@ class _Iniesta(object):
             for c in dir(config):
                 if c.isupper():
                     conf = getattr(config, c)
-                    if c == "INIESTA_CACHE":
+                    if c == "INIESTA_CACHES":
                         settings_object.INSANIC_CACHES.update(conf)
                     elif not hasattr(settings_object, c):
                         setattr(settings_object, c, conf)

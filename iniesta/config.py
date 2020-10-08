@@ -1,7 +1,15 @@
 #: The different types of initializations.
 from typing import Optional
 
-INIESTA_INITIALIZATION_TYPE: tuple = (
+#: The redlock caches
+INIESTA_CACHES: dict = {
+    "iniesta1": {"HOST": "localhost", "PORT": 6379, "DATABASE": 1},
+    "iniesta2": {"HOST": "localhost", "PORT": 6379, "DATABASE": 2},
+    "iniesta3": {"HOST": "localhost", "PORT": 6379, "DATABASE": 3},
+}
+
+#: The initialization type Iniesta will be initialized with.
+INIESTA_INITIALIZATION_TYPE: Optional[tuple] = (
     None  # ["PRODUCER", "EVENT_POLLING", "QUEUE_POLLING", "CUSTOM"]
 )
 

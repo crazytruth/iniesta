@@ -68,16 +68,17 @@ class SQSClient:
         lock_timeout = lock_timeout or settings.INIESTA_LOCK_TIMEOUT
 
         # TODO: get connection info from insanic get connection
+        connections = []
+        for cache_name, conn_info in settings.INSANIC_CACHES.items():
+            if cache_name.startswith("iniesta"):
+                connections.append(
+                    "redis://{HOST}:{PORT}/{DATABASE}".format(**conn_info)
+                )
+
         self.lock_manager = Aioredlock(
-            [
-                {
-                    "host": settings.REDIS_HOST,
-                    "port": settings.REDIS_PORT,
-                    "db": int(settings.REDIS_DB),
-                }
-            ],
+            connections,
             retry_count=retry_count,
-            lock_timeout=lock_timeout,
+            internal_lock_timeout=lock_timeout,
         )
 
     @classmethod
@@ -323,71 +324,72 @@ class SQSClient:
         )
         return resp
 
-    async def _poll(self) -> None:
+    async def _poll(self) -> str:
         """
         The long running method that consistently polls the SQS queue for
         messages.
         :return:
         """
         session = BotoSession.get_session()
-        client = session.create_client(
+
+        async with session.create_client(
             "sqs",
             region_name=self.region_name,
             endpoint_url=self.endpoint_url,
             aws_access_key_id=BotoSession.aws_access_key_id,
             aws_secret_access_key=BotoSession.aws_secret_access_key,
-        )
-        try:
-            while self._loop.is_running() and self._receive_messages:
-                try:
-                    response = await client.receive_message(
-                        QueueUrl=self.queue_url,
-                        MaxNumberOfMessages=settings.INIESTA_SQS_RECEIVE_MESSAGE_MAX_NUMBER_OF_MESSAGES,
-                        WaitTimeSeconds=settings.INIESTA_SQS_RECEIVE_MESSAGE_WAIT_TIME_SECONDS,
-                        AttributeNames=["All"],
-                        MessageAttributeNames=["All"],
-                    )
-                except botocore.exceptions.ClientError as e:
-                    error_logger.critical(
-                        f"[INIESTA] [{e.response['Error']['Code']}]: {e.response['Error']['Message']}"
-                    )
-                else:
-                    event_tasks = [
-                        asyncio.ensure_future(
-                            self.handle_message(
-                                SQSMessage.from_sqs(client, message)
-                            )
+        ) as client:
+            try:
+                while self._loop.is_running() and self._receive_messages:
+                    try:
+                        response = await client.receive_message(
+                            QueueUrl=self.queue_url,
+                            MaxNumberOfMessages=settings.INIESTA_SQS_RECEIVE_MESSAGE_MAX_NUMBER_OF_MESSAGES,
+                            WaitTimeSeconds=settings.INIESTA_SQS_RECEIVE_MESSAGE_WAIT_TIME_SECONDS,
+                            AttributeNames=["All"],
+                            MessageAttributeNames=["All"],
                         )
-                        for message in response.get("Messages", [])
-                    ]
+                    except botocore.exceptions.ClientError as e:
+                        error_logger.critical(
+                            f"[INIESTA] [{e.response['Error']['Code']}]: {e.response['Error']['Message']}"
+                        )
+                    else:
+                        event_tasks = [
+                            asyncio.ensure_future(
+                                self.handle_message(
+                                    SQSMessage.from_sqs(client, message)
+                                )
+                            )
+                            for message in response.get("Messages", [])
+                        ]
 
-                    for fut in asyncio.as_completed(event_tasks):
-                        # NOTE: must catch CancelledError and raise
-                        try:
-                            message_obj, result = await fut
-                        except asyncio.CancelledError:
-                            raise
-                        except Exception as e:
-                            # if error log failure and pass so sqs message persists and message becomes visible again
-                            self.handle_error(e)
-                        else:
-                            await self.handle_success(client, message_obj)
+                        for fut in asyncio.as_completed(event_tasks):
+                            # NOTE: must catch CancelledError and raise
+                            try:
+                                message_obj, result = await fut
+                            except asyncio.CancelledError:
+                                raise
+                            except Exception as e:
+                                # if error log failure and pass so sqs message persists and message becomes visible again
+                                self.handle_error(e)
+                            else:
+                                await self.handle_success(client, message_obj)
 
-                    await self.hook_post_receive_message_handler()
-        except asyncio.CancelledError:
-            logger.info("[INIESTA] POLLING TASK CANCELLED")
-            return "Cancelled"
-        except StopPolling:
-            # mainly used for tests
-            logger.info("[INIESTA] STOP POLLING")
-            return "Stopped"
-        except Exception:
-            if self._receive_messages and self._loop.is_running():
-                error_logger.critical("[INIESTA] POLLING TASK RESTARTING")
-                self._polling_task = self._loop.create_task(self._poll())
-            error_logger.exception("[INIESTA] POLLING EXCEPTION CAUGHT")
-        finally:
-            await client.close()
+                        await self.hook_post_receive_message_handler()
+            except asyncio.CancelledError:
+                logger.info("[INIESTA] POLLING TASK CANCELLED")
+                return "Cancelled"
+            except StopPolling:
+                # mainly used for tests
+                logger.info("[INIESTA] STOP POLLING")
+                return "Stopped"
+            except Exception:
+                if self._receive_messages and self._loop.is_running():
+                    error_logger.critical("[INIESTA] POLLING TASK RESTARTING")
+                    self._polling_task = self._loop.create_task(self._poll())
+                error_logger.exception("[INIESTA] POLLING EXCEPTION CAUGHT")
+            finally:
+                await client.close()
 
         return "Shutdown"  # pragma: no cover
 

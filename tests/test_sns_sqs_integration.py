@@ -28,6 +28,7 @@ class TestSNSSQSIntegration(SQSInfra, SNSInfra):
                 endpoint_url=queue_url,
                 aws_access_key_id=BotoSession.aws_access_key_id,
                 aws_secret_access_key=BotoSession.aws_secret_access_key,
+                region_name=BotoSession.aws_default_region,
             )
             response = sqs.get_queue_attributes(
                 QueueUrl=queue_url,
