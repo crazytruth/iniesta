@@ -11,9 +11,7 @@ class IniestaListener:
     async def _initialize_sqs(self, app):
 
         app.messi = await SQSClient.initialize(
-            queue_name=app.config.INIESTA_SQS_QUEUE_NAME_TEMPLATE.format(
-                env=app.config.MMT_ENV, service_name=app.config.SERVICE_NAME
-            )
+            queue_name=SQSClient.default_queue_name()
         )
 
     def _start_polling(self, app):

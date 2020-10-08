@@ -1,3 +1,5 @@
+import os
+
 import aiobotocore
 from insanic.conf import settings
 
@@ -9,9 +11,11 @@ class AWSCredentials(object):
 
     def __get__(self, instance, owner) -> str:
         if self.value is None:
-            self.value = getattr(
-                settings, f"INIESTA_{self.type}", None
-            ) or getattr(settings, self.type, None)
+            self.value = (
+                os.environ.get(self.type, None)
+                or getattr(settings, f"INIESTA_{self.type}", None)
+                or getattr(settings, self.type, None)
+            )
         return self.value
 
 
@@ -19,7 +23,7 @@ class BotoSession:
     session = None
 
     @classmethod
-    def get_session(cls, loop=None):
+    def get_session(cls):
         if cls.session is None:
             cls.session = aiobotocore.get_session()
         return cls.session

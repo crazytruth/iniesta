@@ -5,12 +5,28 @@ from itertools import permutations
 from insanic import Insanic
 from insanic.conf import settings
 from insanic.functional import empty
+from pytest_redis import factories
+
 from iniesta.app import Iniesta
 from iniesta.choices import InitializationTypes
 from iniesta.sessions import BotoSession
 
 
-settings.configure(SERVICE_NAME="iniesta", ENFORCE_APPLICATION_VERSION=False)
+settings.configure(
+    SERVICE_NAME="iniesta",
+    ENFORCE_APPLICATION_VERSION=False,
+    AWS_ACCESS_KEY_ID="testing",
+    AWS_SECRET_ACCESS_KEY="testing",
+    AWS_DEFAULT_REGION="us-east-1",
+    ENVIRONMENT="tests",
+)
+
+for cache_name, cache_config in settings.INSANIC_CACHES.items():
+    globals()[f"redisdb_{cache_name}"] = factories.redisdb(
+        "redis_nooproc", dbnum=cache_config.get("DATABASE")
+    )
+
+redisdb = factories.redisdb("redis_nooproc")
 
 
 @pytest.fixture(autouse=True)
@@ -67,16 +83,24 @@ def reset_session():
 
 @pytest.fixture(autouse=True)
 def set_redis_connection_info(redisdb, monkeypatch):
-    port = (
-        redisdb.connection_pool.connection_kwargs["path"]
-        .split("/")[-1]
-        .split(".")[1]
-    )
-    db = redisdb.connection_pool.connection_kwargs["db"]
 
-    monkeypatch.setattr(settings, "REDIS_PORT", int(port))
-    monkeypatch.setattr(settings, "REDIS_HOST", "127.0.0.1")
-    monkeypatch.setattr(settings, "REDIS_DB", db)
+    host = redisdb.connection_pool.connection_kwargs["host"]
+    port = redisdb.connection_pool.connection_kwargs["port"]
+
+    insanic_caches = settings.INSANIC_CACHES.copy()
+
+    for cache_name in insanic_caches.keys():
+        insanic_caches[cache_name]["HOST"] = host
+        insanic_caches[cache_name]["PORT"] = int(port)
+
+    caches = settings.CACHES.copy()
+
+    for cache_name in caches.keys():
+        caches[cache_name]["HOST"] = "127.0.0.1"
+        caches[cache_name]["PORT"] = int(port)
+
+    monkeypatch.setattr(settings, "INSANIC_CACHES", insanic_caches)
+    monkeypatch.setattr(settings, "CACHES", caches)
 
 
 @pytest.fixture(autouse=True)

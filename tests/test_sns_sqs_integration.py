@@ -49,20 +49,19 @@ class TestSNSSQSIntegration(SQSInfra, SNSInfra):
         )
 
     @pytest.fixture(scope="function")
-    async def sns_client(self, create_global_sns, sns_endpoint_url):
+    async def sns_client(self, create_global_sns):
         return await SNSClient.initialize(
             topic_arn=create_global_sns["TopicArn"]
         )
 
     @pytest.fixture(scope="function")
-    async def sqs_client(self, sqs_endpoint_url, sns_client):
+    async def sqs_client(self, sns_client):
         client = await SQSClient.initialize(queue_name=self.queue_name)
         yield client
         SQSClient.handlers = {}
 
     async def test_integration(
         self,
-        start_local_aws,
         create_service_sqs,
         create_sqs_subscription,
         add_permissions,
@@ -102,12 +101,7 @@ class TestSNSSQSIntegration(SQSInfra, SNSInfra):
         await sqs_client.lock_manager.destroy()
 
     async def test_filters(
-        self,
-        start_local_aws,
-        create_sqs_subscription,
-        sqs_client,
-        sns_client,
-        add_permissions,
+        self, create_sqs_subscription, sqs_client, sns_client, add_permissions,
     ):
         some_id = uuid.uuid4().hex
         received_messages = []
@@ -140,7 +134,6 @@ class TestSNSSQSIntegration(SQSInfra, SNSInfra):
 
     async def test_delete_sqs_message(
         self,
-        start_local_aws,
         create_sqs_subscription,
         add_permissions,
         sqs_client,
@@ -183,22 +176,12 @@ class TestSNSSQSIntegration(SQSInfra, SNSInfra):
         await sqs_client.lock_manager.destroy()
 
     async def test_confirm_permissions(
-        self,
-        start_local_aws,
-        create_sqs_subscription,
-        add_permissions,
-        sqs_client,
-        sns_client,
+        self, create_sqs_subscription, add_permissions, sqs_client, sns_client,
     ):
         await sqs_client.confirm_permission()
 
     async def test_confirm_subscription(
-        self,
-        start_local_aws,
-        create_sqs_subscription,
-        add_permissions,
-        sqs_client,
-        sns_client,
+        self, create_sqs_subscription, add_permissions, sqs_client, sns_client,
     ):
         await asyncio.sleep(1)
         await sqs_client.confirm_subscription(sns_client.topic_arn)

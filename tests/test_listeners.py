@@ -4,7 +4,6 @@ import ujson as json
 
 from insanic.conf import settings
 from iniesta.listeners import IniestaListener
-from iniesta.sessions import BotoSession
 from iniesta.sns import SNSClient
 from iniesta.sqs import SQSClient
 
@@ -12,7 +11,7 @@ from .infra import SNSInfra, SQSInfra
 
 
 class TestListeners(SNSInfra, SQSInfra):
-    queue_name = "iniesta-test-xavi"
+    queue_name = "iniesta-tests-xavi"
     filters = []
 
     # @pytest.fixture(scope='function')
@@ -20,9 +19,7 @@ class TestListeners(SNSInfra, SQSInfra):
     #     monkeypatch.setattr(settings, 'INIESTA_SQS_CONSUMER_FILTERS', ['Pass.xavi', 'Trap.*'], raising=False)
 
     @pytest.fixture(scope="function")
-    async def sns_client(
-        self, create_global_sns, sns_endpoint_url, monkeypatch, filter_policy
-    ):
+    async def sns_client(self, create_global_sns, monkeypatch, filter_policy):
         monkeypatch.setattr(
             settings,
             "INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN",
@@ -35,9 +32,7 @@ class TestListeners(SNSInfra, SQSInfra):
         return client
 
     @pytest.fixture(scope="function")
-    async def sqs_client(
-        self, sqs_endpoint_url, sns_client, create_service_sqs
-    ):
+    async def sqs_client(self, sns_client, create_service_sqs):
         client = await SQSClient.initialize(queue_name=self.queue_name)
         yield client
 
@@ -45,29 +40,21 @@ class TestListeners(SNSInfra, SQSInfra):
         SQSClient.queue_urls = {}
 
     @pytest.fixture
-    def listener(
-        self, start_local_aws, sns_endpoint_url, sqs_endpoint_url, monkeypatch
-    ):
+    def listener(self):
         listener = IniestaListener()
         yield listener
 
     @pytest.fixture(scope="function")
     def subscribe_sqs_to_sns(
         self,
-        start_local_aws,
         create_global_sns,
         sqs_client,
         create_service_sqs,
-        sns_endpoint_url,
         monkeypatch,
+        aws_client_kwargs,
     ):
 
-        sns = boto3.client(
-            "sns",
-            endpoint_url=sns_endpoint_url,
-            aws_access_key_id=BotoSession.aws_access_key_id,
-            aws_secret_access_key=BotoSession.aws_secret_access_key,
-        )
+        sns = boto3.client("sns", **aws_client_kwargs)
 
         response = sns.subscribe(
             TopicArn=create_global_sns["TopicArn"],
@@ -78,7 +65,7 @@ class TestListeners(SNSInfra, SQSInfra):
                 "FilterPolicy": json.dumps(sqs_client.filters),
             },
         )
-        # NOTE: why response of get_subscription_attributes does not have 'FilterPolicy'? it will cause test failed
+        # NOTE: why response of get_subscription_attributes does not have 'FilterPolicy'? it will cause tests failed
         # response = sns.get_subscription_attributes(
         #     SubscriptionArn=response['SubscriptionArn']
         # )
@@ -86,50 +73,6 @@ class TestListeners(SNSInfra, SQSInfra):
         yield response
 
         sns.unsubscribe(SubscriptionArn=response["SubscriptionArn"])
-
-    # @pytest.fixture(scope='function')
-    # def add_permissions(self, subscribe_sqs_to_sns, create_global_sns,
-    #                     create_service_sqs, sqs_endpoint_url):
-    #     sqs = boto3.client('sqs', endpoint_url=sqs_endpoint_url,
-    #                        aws_access_key_id=BotoSession.aws_access_key_id,
-    #                        aws_secret_access_key=BotoSession.aws_secret_access_key)
-    #
-    #     response = sqs.set_queue_attributes(
-    #         QueueUrl=create_service_sqs['QueueUrl'],
-    #         Attributes={
-    #             "Policy": json.dumps(
-    #                 {
-    #                     "Version": "2012-10-17",
-    #                     "Id": f"arn:aws:sqs:ap-northeast-1:120387605022:{self.queue_name}/SQSDefaultPolicy",
-    #                     "Statement": [
-    #                         {
-    #                             "Sid": "Sid1552456721343",
-    #                             "Effect": "Allow",
-    #                             "Principal": "*",
-    #                             "Action": "SQS:SendMessage",
-    #                             "Resource": create_service_sqs['Attributes']['QueueArn'],
-    #                             "Condition": {
-    #                                 "ArnEquals": {
-    #                                     "aws:SourceArn": create_global_sns['TopicArn']
-    #                                 }
-    #                             }
-    #                         }
-    #                     ]
-    #                 }
-    #             )
-    #         }
-    #     )
-    #     # NOTE: why response of get_queue_attributes does not have 'Attributes'? it will cause test failed
-    #     # policy_attributes = sqs.get_queue_attributes(
-    #     #     QueueUrl=create_service_sqs['QueueUrl'],
-    #     #     AttributeNames=['Policy']
-    #     # )
-    #     # policies = json.loads(policy_attributes['Attributes']['Policy'])
-    #     # statement = policies['Statement'][0]
-    #     # assert statement['Effect'] == "Allow"
-    #     # assert "SQS:SendMessage" in statement['Action']
-    #
-    #     return response
 
     async def test_producer_listener(
         self, insanic_application, listener, sns_client

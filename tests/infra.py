@@ -2,7 +2,6 @@ import boto3
 import pytest
 import ujson as json
 
-from moto import mock_sns
 from insanic.conf import settings
 
 from iniesta import Iniesta
@@ -15,53 +14,43 @@ class InfraBase:
         Iniesta.load_config(settings)
 
     @pytest.fixture(autouse=True)
-    def set_endpoint_on_settings(
-        self, monkeypatch, sns_endpoint_url, sqs_endpoint_url, sts_endpoint_url
-    ):
+    def set_endpoint_on_settings(self, monkeypatch, moto_endpoint_url):
         print("Mocking Endpoints")
         monkeypatch.setattr(
             settings,
             "INIESTA_SNS_ENDPOINT_URL",
-            sns_endpoint_url,
+            moto_endpoint_url,
             raising=False,
         )
         monkeypatch.setattr(
             settings,
             "INIESTA_SQS_ENDPOINT_URL",
-            sqs_endpoint_url,
+            moto_endpoint_url,
             raising=False,
         )
         monkeypatch.setattr(
             settings,
             "INIESTA_STS_ENDPOINT_URL",
-            sts_endpoint_url,
+            moto_endpoint_url,
             raising=False,
         )
 
-    # @pytest.fixture()
-    # def sns_region_name(self, monkeypatch):
-    #     monkeypatch.setattr(settings, 'INIESTA_SNS_REGION_NAME', None, raising=False)
-    #
-    # @pytest.fixture()
-    # def sqs_region_name(self, monkeypatch):
-    #     monkeypatch.setattr(settings, 'INIESTA_SQS_REGION_NAME', None, raising=False)
-    # return settings.INIESTA_SQS_REGION_NAME
-
     @pytest.fixture(scope="module")
-    def sns_endpoint_url(self, start_local_aws):
-        return "http://localhost:5000"
-
-    @pytest.fixture(scope="module")
-    def sqs_endpoint_url(self, start_local_aws):
-        return "http://localhost:5000"
-
-    @pytest.fixture(scope="module")
-    def sts_endpoint_url(self, start_local_aws):
+    def moto_endpoint_url(self):
         return "http://localhost:5000"
 
     @pytest.fixture(autouse=True)
     def set_service_name(self, monkeypatch):
         monkeypatch.setattr(settings, "SERVICE_NAME", "xavi")
+
+    @pytest.fixture(scope="module")
+    def aws_client_kwargs(self, moto_endpoint_url):
+        return dict(
+            endpoint_url=moto_endpoint_url,
+            aws_access_key_id=BotoSession.aws_access_key_id,
+            aws_secret_access_key=BotoSession.aws_secret_access_key,
+            region_name=BotoSession.aws_default_region,
+        )
 
 
 class SNSInfra(InfraBase):
@@ -70,13 +59,13 @@ class SNSInfra(InfraBase):
 
     @pytest.fixture(scope="module", autouse=True)
     def queue_name(self, module_id):
-        self.queue_name = f"iniesta-test-test-{module_id}"
+        self.queue_name = f"iniesta-tests-tests-{module_id}"
         yield
         self.queue_name = None
 
     @pytest.fixture(scope="module", autouse=True)
     def topic_name(self, module_id):
-        self.topic_name = f"test-test-global-{module_id}"
+        self.topic_name = f"tests-tests-global-{module_id}"
         yield
         self.topic_name = None
 
@@ -96,33 +85,16 @@ class SNSInfra(InfraBase):
         }
 
     @pytest.fixture(scope="module")
-    def moto_sns(self):
-        mocked_sns = mock_sns()
-        mocked_sns.start()
+    def create_global_sns(self, aws_client_kwargs):
 
-        yield mocked_sns
-
-    @pytest.fixture(scope="module")
-    def create_global_sns(self, start_local_aws, sns_endpoint_url):
-
-        sns = boto3.client(
-            "sns",
-            endpoint_url=sns_endpoint_url,
-            aws_access_key_id=BotoSession.aws_access_key_id,
-            aws_secret_access_key=BotoSession.aws_secret_access_key,
-        )
+        sns = boto3.client("sns", **aws_client_kwargs)
         response = sns.create_topic(Name=self.topic_name)
         yield response
         sns.delete_topic(TopicArn=response["TopicArn"])
 
     @pytest.fixture(scope="module")
-    def create_service_sqs(self, start_local_aws, sqs_endpoint_url, session_id):
-        sqs = boto3.client(
-            "sqs",
-            endpoint_url=sqs_endpoint_url,
-            aws_access_key_id=BotoSession.aws_access_key_id,
-            aws_secret_access_key=BotoSession.aws_secret_access_key,
-        )
+    def create_service_sqs(self, session_id, aws_client_kwargs):
+        sqs = boto3.client("sqs", **aws_client_kwargs)
 
         # template for queue name is `iniesta-{environment}-{service_name}
         response = sqs.create_queue(QueueName=self.queue_name)
@@ -140,18 +112,12 @@ class SNSInfra(InfraBase):
     @pytest.fixture(scope="function")
     def create_sqs_subscription(
         self,
-        start_local_aws,
         create_global_sns,
         create_service_sqs,
-        sns_endpoint_url,
         filter_policy,
+        aws_client_kwargs,
     ):
-        sns = boto3.client(
-            "sns",
-            endpoint_url=sns_endpoint_url,
-            aws_access_key_id=BotoSession.aws_access_key_id,
-            aws_secret_access_key=BotoSession.aws_secret_access_key,
-        )
+        sns = boto3.client("sns", **aws_client_kwargs)
 
         response = sns.subscribe(
             TopicArn=create_global_sns["TopicArn"],
@@ -168,16 +134,11 @@ class SNSInfra(InfraBase):
 
 
 class SQSInfra(InfraBase):
-    queue_name = "iniesta-test-test"
+    queue_name = "iniesta-tests-tests"
 
     @pytest.fixture(scope="module")
-    def create_service_sqs(self, start_local_aws, sqs_endpoint_url, session_id):
-        sqs = boto3.client(
-            "sqs",
-            endpoint_url=sqs_endpoint_url,
-            aws_access_key_id=BotoSession.aws_access_key_id,
-            aws_secret_access_key=BotoSession.aws_secret_access_key,
-        )
+    def create_service_sqs(self, session_id, aws_client_kwargs):
+        sqs = boto3.client("sqs", **aws_client_kwargs)
 
         # template for queue name is `iniesta-{environment}-{service_name}
         while True:
@@ -206,15 +167,10 @@ class SQSInfra(InfraBase):
         create_sqs_subscription,
         create_global_sns,
         create_service_sqs,
-        sqs_endpoint_url,
+        aws_client_kwargs,
     ):
 
-        sqs = boto3.client(
-            "sqs",
-            endpoint_url=sqs_endpoint_url,
-            aws_access_key_id=BotoSession.aws_access_key_id,
-            aws_secret_access_key=BotoSession.aws_secret_access_key,
-        )
+        sqs = boto3.client("sqs", **aws_client_kwargs)
 
         response = sqs.set_queue_attributes(
             QueueUrl=create_service_sqs["QueueUrl"],

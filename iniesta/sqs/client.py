@@ -7,9 +7,10 @@ import ujson as json
 from aioredlock import Aioredlock, LockError
 from inspect import signature, isawaitable, isfunction
 from insanic.conf import settings
+from insanic.exceptions import ImproperlyConfigured
 from insanic.log import logger, error_logger
 
-from iniesta.exceptions import StopPolling, ImproperlyConfigured
+from iniesta.exceptions import StopPolling
 from iniesta.sessions import BotoSession
 from iniesta.sns import SNSClient
 from iniesta.utils import filter_list_to_filter_policies
@@ -82,7 +83,7 @@ class SQSClient:
     @classmethod
     def default_queue_name(cls) -> str:
         return settings.INIESTA_SQS_QUEUE_NAME_TEMPLATE.format(
-            env=settings.MMT_ENV, service_name=settings.SERVICE_NAME
+            env=settings.ENVIRONMENT, service_name=settings.SERVICE_NAME
         )
 
     @classmethod

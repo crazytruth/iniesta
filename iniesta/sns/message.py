@@ -73,7 +73,7 @@ class SNSMessage(MessageAttributes):
         """
         The size of this message.
         """
-        return len(json.dumps(self).encode("utf8"))
+        return len(json.dumps(self.data).encode("utf8"))
 
     @property
     def subject(self) -> str:

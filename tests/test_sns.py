@@ -36,50 +36,50 @@ class TestSNSMessage:
     @pytest.mark.parametrize("test_value", ("", "b"))
     def test_add_string_attribute(self, test_value):
         message = SNSMessage()
-        message.add_string_attribute("test", test_value)
+        message.add_string_attribute("tests", test_value)
 
-        assert "test" in message.message_attributes
-        assert "DataType" in message.message_attributes["test"]
-        assert message.message_attributes["test"]["DataType"] == "String"
-        assert "StringValue" in message.message_attributes["test"]
-        assert message.message_attributes["test"]["StringValue"] == test_value
+        assert "tests" in message.message_attributes
+        assert "DataType" in message.message_attributes["tests"]
+        assert message.message_attributes["tests"]["DataType"] == "String"
+        assert "StringValue" in message.message_attributes["tests"]
+        assert message.message_attributes["tests"]["StringValue"] == test_value
 
     @pytest.mark.parametrize("test_value", (1, 2.34))
     def test_add_number_attribute(self, test_value):
         message = SNSMessage()
-        message.add_number_attribute("test", test_value)
+        message.add_number_attribute("tests", test_value)
 
-        assert "test" in message.message_attributes
-        assert "DataType" in message.message_attributes["test"]
-        assert message.message_attributes["test"]["DataType"] == "Number"
-        assert "StringValue" in message.message_attributes["test"]
-        assert message.message_attributes["test"]["StringValue"] == str(
+        assert "tests" in message.message_attributes
+        assert "DataType" in message.message_attributes["tests"]
+        assert message.message_attributes["tests"]["DataType"] == "Number"
+        assert "StringValue" in message.message_attributes["tests"]
+        assert message.message_attributes["tests"]["StringValue"] == str(
             test_value
         )
 
     @pytest.mark.parametrize("test_value", ([], [1], (), (1,),))
     def test_add_list_attribute(self, test_value):
         message = SNSMessage()
-        message.add_list_attribute("test", test_value)
+        message.add_list_attribute("tests", test_value)
 
-        assert "test" in message.message_attributes
-        assert "DataType" in message.message_attributes["test"]
-        assert message.message_attributes["test"]["DataType"] == "String.Array"
-        assert "StringValue" in message.message_attributes["test"]
-        assert message.message_attributes["test"]["StringValue"] == json.dumps(
+        assert "tests" in message.message_attributes
+        assert "DataType" in message.message_attributes["tests"]
+        assert message.message_attributes["tests"]["DataType"] == "String.Array"
+        assert "StringValue" in message.message_attributes["tests"]
+        assert message.message_attributes["tests"]["StringValue"] == json.dumps(
             test_value
         )
 
     @pytest.mark.parametrize("test_value", (b"", b"a"))
     def test_add_binary_attribute(self, test_value):
         message = SNSMessage()
-        message.add_binary_attribute("test", test_value)
+        message.add_binary_attribute("tests", test_value)
 
-        assert "test" in message.message_attributes
-        assert "DataType" in message.message_attributes["test"]
-        assert message.message_attributes["test"]["DataType"] == "Binary"
-        assert "BinaryValue" in message.message_attributes["test"]
-        assert message.message_attributes["test"]["BinaryValue"] == test_value
+        assert "tests" in message.message_attributes
+        assert "DataType" in message.message_attributes["tests"]
+        assert message.message_attributes["tests"]["DataType"] == "Binary"
+        assert "BinaryValue" in message.message_attributes["tests"]
+        assert message.message_attributes["tests"]["BinaryValue"] == test_value
 
     @pytest.mark.parametrize(
         "test_value, expected_data_type, expected_value_key",
@@ -104,14 +104,15 @@ class TestSNSMessage:
         self, test_value, expected_data_type, expected_value_key
     ):
         message = SNSMessage()
-        message.add_attribute("test", test_value)
+        message.add_attribute("tests", test_value)
 
-        assert "test" in message.message_attributes
-        assert "DataType" in message.message_attributes["test"]
+        assert "tests" in message.message_attributes
+        assert "DataType" in message.message_attributes["tests"]
         assert (
-            message.message_attributes["test"]["DataType"] == expected_data_type
+            message.message_attributes["tests"]["DataType"]
+            == expected_data_type
         )
-        assert expected_value_key in message.message_attributes["test"]
+        assert expected_value_key in message.message_attributes["tests"]
 
         if expected_data_type == "String.Array":
             test_value = json.dumps(test_value)
@@ -119,7 +120,8 @@ class TestSNSMessage:
             test_value = str(test_value)
 
         assert (
-            message.message_attributes["test"][expected_value_key] == test_value
+            message.message_attributes["tests"][expected_value_key]
+            == test_value
         )
 
     @pytest.mark.parametrize(
@@ -207,18 +209,14 @@ class TestSNSMessage:
 
 
 class TestSNSClient(SNSInfra):
-    async def test_client_initialize(
-        self, start_local_aws, create_global_sns, sns_endpoint_url
-    ):
+    async def test_client_initialize(self, create_global_sns):
 
         client = await SNSClient.initialize(
             topic_arn=create_global_sns["TopicArn"]
         )
         assert client.topic_arn == create_global_sns["TopicArn"]
 
-    async def test_client_create_message(
-        self, start_local_aws, create_global_sns, sns_endpoint_url
-    ):
+    async def test_client_create_message(self, create_global_sns):
         client = await SNSClient.initialize(
             topic_arn=create_global_sns["TopicArn"]
         )
@@ -235,16 +233,12 @@ class TestSNSClient(SNSInfra):
         # assert 'MessageId' in response
         # assert response['MessageId'] is not None
 
-    async def test_client_topic_doesnt_exist(
-        self, start_local_aws, sns_endpoint_url
-    ):
+    async def test_client_topic_doesnt_exist(self):
 
         with pytest.raises(botocore.exceptions.ClientError):
             await SNSClient.initialize(topic_arn="asdasda")
 
-    async def test_list_subscriptions_empty(
-        self, start_local_aws, create_global_sns, sns_endpoint_url
-    ):
+    async def test_list_subscriptions_empty(self, create_global_sns):
 
         client = await SNSClient.initialize(
             topic_arn=create_global_sns["TopicArn"]
@@ -255,12 +249,7 @@ class TestSNSClient(SNSInfra):
         assert len(subscriptions) == 0
 
     async def test_list_subscriptions_with_existing(
-        self,
-        start_local_aws,
-        create_global_sns,
-        create_service_sqs,
-        create_sqs_subscription,
-        sns_endpoint_url,
+        self, create_global_sns, create_service_sqs, create_sqs_subscription,
     ):
 
         client = await SNSClient.initialize(
@@ -278,12 +267,7 @@ class TestSNSClient(SNSInfra):
         )
 
     async def test_get_subscription_attributes(
-        self,
-        start_local_aws,
-        create_global_sns,
-        create_service_sqs,
-        create_sqs_subscription,
-        sns_endpoint_url,
+        self, create_global_sns, create_service_sqs, create_sqs_subscription,
     ):
 
         """
@@ -292,19 +276,16 @@ class TestSNSClient(SNSInfra):
             'Owner': '120387605022',
             'RawMessageDelivery': 'false',
             'FilterPolicy': '{"iniesta_pass":["hello",{"prefix":"Request"}]}',
-            'TopicArn': 'arn:aws:sns:ap-northeast-1:120387605022:test-test-global',
-            'Endpoint': 'arn:aws:sqs:ap-northeast-1:120387605022:iniesta-test-test',
+            'TopicArn': 'arn:aws:sns:ap-northeast-1:120387605022:tests-tests-global',
+            'Endpoint': 'arn:aws:sqs:ap-northeast-1:120387605022:iniesta-tests-tests',
             'Protocol': 'sqs',
             'PendingConfirmation': 'false', 'ConfirmationWasAuthenticated': 'true',
-            'SubscriptionArn': 'arn:aws:sns:ap-northeast-1:120387605022:test-test-global:cd591f81-c223-4cf8-828d-6fbbce3f66f3'
+            'SubscriptionArn': 'arn:aws:sns:ap-northeast-1:120387605022:tests-tests-global:cd591f81-c223-4cf8-828d-6fbbce3f66f3'
         }
 
-
-        :param start_local_aws:
         :param create_global_sns:
         :param create_service_sqs:
         :param create_sqs_subscription:
-        :param sns_endpoint_url:
         :return:
         """
 
@@ -357,15 +338,13 @@ class TestSNSClient(SNSInfra):
             def get(self, request, *args, **kwargs):
                 return json_response({"help": "me"})
 
-        insanic_application.add_route(TestView.as_view(), "/test/event/")
+        insanic_application.add_route(TestView.as_view(), "/tests/event/")
 
         return insanic_application
 
     def test_publish_event_decorator(
         self,
-        start_local_aws,
         create_global_sns,
-        sns_endpoint_url,
         insanic_application_with_event_polling,
         monkeypatch,
     ):
@@ -393,7 +372,7 @@ class TestSNSClient(SNSInfra):
             request,
             response,
         ) = insanic_application_with_event_polling.test_client.get(
-            "/test/event/"
+            "/tests/event/"
         )
         assert response.status == 200
         assert response.json == {"help": "me"}
@@ -403,9 +382,7 @@ class TestSNSClient(SNSInfra):
 
     def test_publish_event_decorator_even_if_publishing_error(
         self,
-        start_local_aws,
         create_global_sns,
-        sns_endpoint_url,
         insanic_application_with_event_polling,
         monkeypatch,
     ):
@@ -421,7 +398,7 @@ class TestSNSClient(SNSInfra):
             request,
             response,
         ) = insanic_application_with_event_polling.test_client.get(
-            "/test/event/"
+            "/tests/event/"
         )
         assert response.status == 200
         assert response.json == {"help": "me"}

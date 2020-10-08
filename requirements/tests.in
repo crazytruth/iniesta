@@ -3,5 +3,5 @@ pytest
 pytest-cov
 pytest-redis
 pytest-sanic
-moto
+moto[server]
 requests
