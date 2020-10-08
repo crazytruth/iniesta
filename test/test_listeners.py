@@ -12,7 +12,6 @@ from .infra import SNSInfra, SQSInfra
 
 
 class TestListeners(SNSInfra, SQSInfra):
-    run_local = False
     queue_name = "iniesta-test-xavi"
     filters = []
 

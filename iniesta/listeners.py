@@ -23,24 +23,27 @@ class IniestaListener:
         await app.messi.stop_receiving_messages()
 
     # actual listeners
-    async def after_server_start_producer_check(self, app, loop=None, **kwargs):
+    async def after_server_start_producer_check(
+        self, app, loop=None, **kwargs
+    ) -> None:
+        """
+        Initializes the SNS client for Iniesta to use.
+        """
         await self._initialize_sns(app)
 
     async def after_server_start_start_queue_polling(
         self, app, loop=None, **kwargs
     ):
+        """
+        Initializes the SQS client and starts polling with settings.
+        """
         await self._initialize_sqs(app)
         self._start_polling(app)
 
     async def after_server_start_event_polling(self, app, loop=None, **kwargs):
         """
-        start event polling listener. checks if all necessary components
-        have been initialized
-
-        :param app:
-        :param loop:
-        :param kwargs:
-        :return:
+        Starts event polling listener. Verifies all necessary components
+        have been initialized.
         """
         await self._initialize_sqs(app)
 
@@ -53,11 +56,6 @@ class IniestaListener:
 
     async def before_server_stop_stop_polling(self, app, loop=None, **kwargs):
         """
-        needs to be attached when start_polling gets attached
-
-        :param app:
-        :param loop:
-        :param kwargs:
-        :return:
+        Shut down for polling. Needs to be attached when start_polling gets attached
         """
         await self._stop_polling(app)

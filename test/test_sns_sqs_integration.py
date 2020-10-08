@@ -13,9 +13,6 @@ from .infra import SNSInfra, SQSInfra
 
 
 class TestSNSSQSIntegration(SQSInfra, SNSInfra):
-
-    run_local = False
-
     @pytest.fixture(autouse=True)
     def cancel_polling(self, monkeypatch, create_service_sqs):
         async def mock_hook_post_message_handler(queue_url):

@@ -1,16 +1,21 @@
 from types import MappingProxyType
 
+from insanic import Insanic
+from insanic.exceptions import ImproperlyConfigured
 from insanic.functional import empty
+from sphinx.config import Config
 
 from . import config
 from .choices import InitializationTypes
-from .exceptions import ImproperlyConfigured
 from .listeners import IniestaListener
 from .utils import filter_list_to_filter_policies
 
 
 class _Iniesta(object):
-    def __init__(self):
+    def __init__(self) -> None:
+        """
+        Initializes Iniesta with different methods. This is a single instance.
+        """
         self.config_imported = False
         self._initialization_type = empty
 
@@ -24,7 +29,7 @@ class _Iniesta(object):
         )
 
     @property
-    def initialization_type(self):
+    def initialization_type(self) -> InitializationTypes:
         final = InitializationTypes(0)
         if self._initialization_type is empty:
             return final
@@ -34,7 +39,7 @@ class _Iniesta(object):
         return final
 
     @initialization_type.setter
-    def initialization_type(self, value):
+    def initialization_type(self, value: InitializationTypes) -> None:
         if not isinstance(value, InitializationTypes):
             raise ValueError("Must be an InitializationTypes choice.")
 
@@ -42,13 +47,13 @@ class _Iniesta(object):
             self._initialization_type = []
         self._initialization_type.append(value)
 
-    def check_global_arn(self, settings_object):
+    def check_global_arn(self, settings_object: Config) -> None:
         if settings_object.INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN is None:
             raise ImproperlyConfigured(
                 "INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN not set in settings!"
             )
 
-    def load_config(self, settings_object):
+    def load_config(self, settings_object: Config) -> None:
         if not self.config_imported:
             for c in dir(config):
                 if c.isupper():
@@ -60,13 +65,13 @@ class _Iniesta(object):
 
             self.config_imported = True
 
-    def unload_config(self, settings_object):
+    def unload_config(self, settings_object: Config) -> None:
         for c in dir(config):
             if c.isupper():
                 delattr(settings_object, c)
         self.config_imported = False
 
-    def _order_initialization_type(self, settings_object):
+    def _order_initialization_type(self, settings_object: Config) -> None:
         try:
             init_types = settings_object.INIESTA_INITIALIZATION_TYPE
             return sorted([InitializationTypes[it] for it in init_types])
@@ -77,7 +82,7 @@ class _Iniesta(object):
                 f"Choices are {', '.join(str(i) for i in self.INITIALIZATION_MAPPING.keys())}"
             )
 
-    def _validate_initialization_type(self, settings_object):
+    def _validate_initialization_type(self, settings_object: Config):
         if settings_object.INIESTA_INITIALIZATION_TYPE is None:
             raise ImproperlyConfigured(
                 "Please configure INIESTA_INITIALIZATION_TYPE in your config!"
@@ -90,11 +95,9 @@ class _Iniesta(object):
                 "INIESTA_INITIALIZATION_TYPE type is invalid. Must be list or tuple!"
             )
 
-    def init_app(self, app):
+    def init_app(self, app: Insanic) -> None:
         """
         Initializes the application depending on INIESTA_INITIALIZATION_TYPE set in settings
-
-        :param app: An instance of an insanic application
         """
         if self._initialization_type is not empty:
             raise ImproperlyConfigured("Iniesta has already been initialized!")
@@ -110,26 +113,26 @@ class _Iniesta(object):
             initialization_method(app)
             self.initialization_type = choice
 
-    def _init_custom(self, app):
+    def _init_custom(self, app: Insanic) -> None:
         """
         Initializes the application for custom use.
-        load configs
 
-        :param app:
-        :return:
+        Actions this takes:
+
+            - Loads iniesta configs
         """
         self.load_config(app.config)
 
-    def _init_producer(self, app):
+    def _init_producer(self, app: Insanic) -> None:
         """
         Initializes the application with only SNS producing capabilities.
         Checks if the global sns arn exists. If not fails running of application.
 
-        check if global arn is set
-        load configs
+        Actions:
 
-        :param app:
-        :return:
+            - Checks if global arn is valid
+            - Loads iniesta configs
+
         """
         self.load_config(app.config)
 
@@ -142,13 +145,15 @@ class _Iniesta(object):
                 listener.after_server_start_producer_check, "after_server_start"
             )
 
-    def _init_queue_polling(self, app):
+    def _init_queue_polling(self, app: Insanic) -> None:
         """
-        Basic sqs queue polling without the need for checking subscriptions
-        Load configs
-        Attach listeners to check if queue exists
+        Basic sqs queue polling without the need for checking subscriptions.
 
-        :param app: An instance of an insanic application
+        Actions:
+
+            - Loads iniesta configs
+            - Attaches listeners to check if queue exists
+
         """
 
         self.load_config(app.config)
@@ -164,15 +169,18 @@ class _Iniesta(object):
 
     def _init_event_polling(self, app):
         """
-        Check if global arn exists
-        Need to check if filters are 0 to avoid receiving all messages
-        Load configs
-        Attaches listeners
-        Check if queue exists (initialize)
-        Check subscriptions
-        Check permissions
+        Initializes for event polling.
 
-        :param app: An instance of an insanic application
+        Actions:
+
+            - Checks if global arn exists
+            - Checks if filters are 0 to avoid receiving all messages
+            - Loads iniesta configs
+            - Attaches listeners
+            - Checks if queue exists (initialize)
+            - Checks subscriptions
+            - Checks permissions
+
         """
 
         self.load_config(app.config)
@@ -196,7 +204,10 @@ class _Iniesta(object):
                 listener.before_server_stop_stop_polling, "before_server_stop"
             )
 
-    def filter_policies(self):
+    def filter_policies(self) -> dict:
+        """
+        Serializes the defined filter policies that AWS apis can use.
+        """
         from insanic.conf import settings
 
         return filter_list_to_filter_policies(

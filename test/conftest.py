@@ -10,13 +10,7 @@ from iniesta.choices import InitializationTypes
 from iniesta.sessions import BotoSession
 
 
-settings.configure(
-    SERVICE_NAME="iniesta",
-    GATEWAY_REGISTRATION_ENABLED=False,
-    MMT_ENV="test",
-    TRACING_ENABLED=False,
-    GRPC_SERVE=False,
-)
+settings.configure(SERVICE_NAME="iniesta", ENFORCE_APPLICATION_VERSION=False)
 
 
 @pytest.fixture(autouse=True)

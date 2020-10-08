@@ -2,8 +2,9 @@ import botocore
 import pytest
 import ujson as json
 
+from sanic.response import json as json_response
+
 from insanic.conf import settings
-from insanic.responses import json_response
 from insanic.views import InsanicView
 
 from iniesta.sessions import BotoSession

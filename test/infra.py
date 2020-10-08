@@ -2,31 +2,17 @@ import boto3
 import pytest
 import ujson as json
 
-from localstack.services import infra
-
+from moto import mock_sns
 from insanic.conf import settings
 
 from iniesta import Iniesta
 from iniesta.sessions import BotoSession
 
-RUN_LOCAL = True
-
 
 class InfraBase:
-    run_local = RUN_LOCAL
-
     @pytest.fixture(autouse=True)
     def load_configs(self):
         Iniesta.load_config(settings)
-
-    @pytest.fixture(scope="module")
-    def start_local_aws(self):
-        if self.run_local:
-            infra.start_infra(asynchronous=True, apis=["sns", "sqs"])
-            yield infra
-            infra.stop_infra()
-        else:
-            yield None
 
     @pytest.fixture(autouse=True)
     def set_endpoint_on_settings(
@@ -63,15 +49,15 @@ class InfraBase:
 
     @pytest.fixture(scope="module")
     def sns_endpoint_url(self, start_local_aws):
-        return start_local_aws.config.TEST_SNS_URL if self.run_local else None
+        return "http://localhost:5000"
 
     @pytest.fixture(scope="module")
     def sqs_endpoint_url(self, start_local_aws):
-        return start_local_aws.config.TEST_SQS_URL if self.run_local else None
+        return "http://localhost:5000"
 
     @pytest.fixture(scope="module")
     def sts_endpoint_url(self, start_local_aws):
-        return start_local_aws.config.TEST_STS_URL if self.run_local else None
+        return "http://localhost:5000"
 
     @pytest.fixture(autouse=True)
     def set_service_name(self, monkeypatch):
@@ -110,7 +96,15 @@ class SNSInfra(InfraBase):
         }
 
     @pytest.fixture(scope="module")
+    def moto_sns(self):
+        mocked_sns = mock_sns()
+        mocked_sns.start()
+
+        yield mocked_sns
+
+    @pytest.fixture(scope="module")
     def create_global_sns(self, start_local_aws, sns_endpoint_url):
+
         sns = boto3.client(
             "sns",
             endpoint_url=sns_endpoint_url,

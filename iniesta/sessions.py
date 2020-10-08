@@ -3,11 +3,11 @@ from insanic.conf import settings
 
 
 class AWSCredentials(object):
-    def __init__(self, type):
+    def __init__(self, type: str):
         self.value = None
         self.type = type
 
-    def __get__(self, instance, owner):
+    def __get__(self, instance, owner) -> str:
         if self.value is None:
             self.value = getattr(
                 settings, f"INIESTA_{self.type}", None
@@ -23,13 +23,6 @@ class BotoSession:
         if cls.session is None:
             cls.session = aiobotocore.get_session()
         return cls.session
-
-    # @classmethod
-    # def create_client(cls, resource, *, endpoint_url=None,  **kwargs):
-    #
-    #
-    #
-    #     return cls.session.create_client(resource, )
 
     aws_access_key_id = AWSCredentials("AWS_ACCESS_KEY_ID")
     aws_secret_access_key = AWSCredentials("AWS_SECRET_ACCESS_KEY")

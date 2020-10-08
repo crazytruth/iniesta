@@ -1,3 +1,5 @@
+from typing import Optional, Iterator, Any, Callable
+
 import botocore.exceptions
 import functools
 
@@ -12,14 +14,23 @@ from insanic.log import error_logger, logger
 
 
 class SNSClient:
-    def __init__(self, topic_arn=None, *, region_name=None, endpoint_url=None):
-        """
-        initialize client with topic arn and endpoint url
+    """
+    initialize client with topic arn and endpoint url
 
-        :param topic_arn:
-        :param region_name: takes priority or defaults to setings
-        :param endpoint_url: takes priority or defaults to settings
-        """
+    :param topic_arn: If you would like to initialize this client with a
+        different topic. Defaults to :code:`INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN` if not passed.
+    :param region_name: Takes priority or defaults to :code:`INIESTA_SNS_REGION_NAME` settings.
+    :param endpoint_url: Takes priority or defaults to :code:`INIESTA_SNS_ENDPOINT_URL` settings.
+    """
+
+    def __init__(
+        self,
+        topic_arn: Optional[str] = None,
+        *,
+        region_name: Optional[str] = None,
+        endpoint_url: Optional[str] = None,
+    ):
+
         self.topic_arn = (
             topic_arn or settings.INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN
         )
@@ -28,17 +39,25 @@ class SNSClient:
 
     @classmethod
     async def initialize(
-        cls, *, topic_arn, region_name=None, endpoint_url=None
+        cls,
+        *,
+        topic_arn: Optional[str] = None,
+        region_name: Optional[str] = None,
+        endpoint_url: Optional[str] = None,
     ):
         """
         Class method to initialize the SNS Client and confirm the topic exists.
         We needed to do this because of asyncio functionality
 
-        :param topic_arn:
-        :param region_name: takes priority or defaults to setings
-        :param endpoint_url: takes priority or defaults to settings
-        :return:
+        :param topic_arn: If you would like to initialize this client with a
+        different topic. Defaults to :code:`INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN` if not passed.
+        :param region_name: Takes priority or defaults to :code:`INIESTA_SNS_REGION_NAME` settings.
+        :param endpoint_url: Takes priority or defaults to :code:`INIESTA_SNS_ENDPOINT_URL` settings.
+        :return: An initialized instance of :code:`cls` (:code:`SQSClient`).
+        :rtype: :code:`SNSClient`
         """
+
+        topic_arn = topic_arn or settings.INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN
 
         try:
             await cls._confirm_topic(
@@ -55,15 +74,14 @@ class SNSClient:
 
     @classmethod
     async def _confirm_topic(
-        cls, topic_arn, *, region_name=None, endpoint_url=None
-    ):
+        cls,
+        topic_arn: str,
+        *,
+        region_name: Optional[str] = None,
+        endpoint_url: Optional[str] = None,
+    ) -> None:
         """
-        Confirm that the topic exists
-
-        :param topic_arn:
-        :param region_name: takes priority or defaults to setings
-        :param endpoint_url: takes priority or defaults to settings
-        :return:
+        Confirm that the topic exists by request :code:`get_topic_attributes` to AWS.
         """
         session = BotoSession.get_session()
 
@@ -98,16 +116,21 @@ class SNSClient:
             error_logger.critical(error_message)
             raise
 
-    async def list_subscriptions_by_topic(self):
+    async def list_subscriptions_by_topic(self) -> Iterator:
         """
-        Subscription:
-        {
-            'SubscriptionArn': 'string',
-            'Owner': 'string',
-            'Protocol': 'string',
-            'Endpoint': 'string',
-            'TopicArn': 'string'
-        }
+        The list of subscriptions attached to the current topic.
+
+        The subscription object is in the following format.
+
+        .. code-block:: json
+
+            {
+                "SubscriptionArn": "string",
+                "Owner": "string",
+                "Protocol": "string",
+                "Endpoint": "string",
+                "TopicArn": "string"
+            }
 
         :return: list of subscriptions
         """
@@ -123,7 +146,13 @@ class SNSClient:
 
             next_token = _subscriptions.get("NextToken")
 
-    async def get_subscription_attributes(self, subscription_arn):
+    async def get_subscription_attributes(self, subscription_arn: str) -> dict:
+        """
+        Retrieves the attributes of the subscription from AWS.
+
+        Refer to https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sns.html#SNS.Client.get_subscription_attributes
+        for more information.
+        """
 
         async with BotoSession.get_session().create_client(
             "sns",
@@ -137,15 +166,21 @@ class SNSClient:
             )
 
     def create_message(
-        self, *, event, message, version=1, **message_attributes
-    ):
+        self,
+        *,
+        event: str,
+        message: Any,
+        version: int = 1,
+        **message_attributes,
+    ) -> SNSMessage:
         """
+        A helper method to create a SNSMessage object.
 
-        :param event: the event to publish (will be used to filter)
-        :param message: message to send with event
-        :param version: a version to publish
-        :param message_attributes:
-        :return:
+        :param event: The event to publish (will be used to filter).
+        :param message: The message body to send with event.
+        :param version: A version to publish. Defaults to 1.
+        :param message_attributes: Any attributes to include in the message.
+            Refer to https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/sns.html#SNS.Client.publish.
         """
         message_payload = SNSMessage.create_message(
             self,
@@ -156,15 +191,19 @@ class SNSClient:
         )
         return message_payload
 
-    def publish_event(self, *, event, version=1, **message_attributes):
+    def publish_event(
+        self, *, event: str, version: int = 1, **message_attributes
+    ) -> Callable:
         """
-        decorator for publishing event with event specified in decorator and publishes
-        the return of the decorated function. Can only be used on views.
+        Used for decorating a view function or view class method.
+        This publishes the message with the event specified with
+        the return of the decorated function or method.
+        This only triggers if the response is with a status code
+        of less than 300.
 
-        :param event: Event name to be published
+        :param event: Event value to be published.
         :param version: The version.
-        :param message_attributes: Any extra message_attributes to be attached to the event
-        :return:
+        :param message_attributes: Any extra message_attributes to be attached to the event.
         """
 
         def wrapper(func):

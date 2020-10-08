@@ -1,3 +1,5 @@
+from typing import Any
+
 import botocore
 import hashlib
 import ujson as json
@@ -24,7 +26,16 @@ ERROR_MESSAGES = {
 
 
 class SQSMessage(MessageAttributes):
-    def __init__(self, client, message):
+    """
+    The Message object that will be used to send a message to SQS.
+
+    :param client: The client that will be sending this message.
+    :type client: :code:`SQSClient`
+    :param message: The message to send. A json dumpable value.
+    """
+
+    def __init__(self, client, message: Any) -> None:
+
         super().__init__()
         self.client = client
         self["MessageBody"] = message
@@ -35,14 +46,15 @@ class SQSMessage(MessageAttributes):
         self.attributes = None
 
     @classmethod
-    def from_sqs(cls, client, message):
+    def from_sqs(cls, client, message: Any):
         """
         A helper method that unpacks everything from receive_message
 
         :param client: SQSClient instance from which the message came from
-        :param message: The dict from receive_message
-        :type message: dict
-        :return:
+        :type client: :code:`SQSClient`
+        :param message: The message from receive_message when polling SQS.
+        :return: A initialized SQSMessage instance.
+        :rtype: :code:`SQSMessage`
         """
 
         try:
@@ -68,11 +80,20 @@ class SQSMessage(MessageAttributes):
             return False
 
     @property
-    def delay_seconds(self):
+    def delay_seconds(self) -> int:
+        """
+        The length of time in seconds to delay the message.
+        """
         return self.get("DelaySeconds", 0)
 
     @delay_seconds.setter
-    def delay_seconds(self, value):
+    def delay_seconds(self, value: int) -> None:
+        """
+        To set the length of time in seconds to delay the message.
+
+        :raises TypeError: If the value is not an int.
+        :raises ValueError: If the value is not inbetween 0 and 900.
+        """
         if not isinstance(value, int):
             raise TypeError(
                 ERROR_MESSAGES["delay_seconds_type_error"].format(value=value)
@@ -88,27 +109,43 @@ class SQSMessage(MessageAttributes):
 
     @property
     def raw_body(self):
+        """
+        The raw body of the message.
+        """
         return self["MessageBody"]
 
     @property
     def body(self):
+        """
+        The body as a python object.
+        """
         try:
             return json.loads(self.raw_body)
         except ValueError:
             return self.raw_body
 
     @property
-    def event(self):
+    def event(self) -> str:
+        """
+        The event that this message was received as.
+        """
         return self.message_attributes.get(settings.INIESTA_SNS_EVENT_KEY, None)
 
-    def checksum_body(self):
+    def checksum_body(self) -> bool:
+        """
+        Verifies the body was properly received.
+        """
         return (
             hashlib.md5(self["MessageBody"].encode("utf-8")).hexdigest()
             == self.md5_of_body
         )
 
     @property
-    def message_attributes(self):
+    def message_attributes(self) -> dict:
+        """
+        Any message attributes attached to this body.
+        Refer to https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/sqs-message-metadata.html#sqs-message-attributes
+        """
 
         _message_attributes = {}
 
@@ -124,11 +161,11 @@ class SQSMessage(MessageAttributes):
 
         return _message_attributes
 
-    async def send(self):
+    async def send(self) -> None:
         """
-        Sends the message to the queue defined in client
+        Sends this message to the queue defined in client.
 
-        :return:
+        :raises botocore.exceptions.ClientError: If there was an issue when sending the message to SQS.
         """
         session = BotoSession.get_session()
         try:
