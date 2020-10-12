@@ -5,12 +5,12 @@ import functools
 
 from inspect import isawaitable
 
+from iniesta.log import error_logger, logger
 from iniesta.sessions import BotoSession
 from iniesta.sns import SNSMessage
 
 from insanic.conf import settings
 from insanic.exceptions import APIException
-from insanic.log import error_logger, logger
 
 
 class SNSClient:

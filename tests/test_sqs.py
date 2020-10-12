@@ -188,7 +188,7 @@ class TestSQSClient(SQSInfra):
 
         # assert caplog.records[0].levelname == "ERROR"
         for log_record in caplog.records:
-            if log_record.name == "sanic.error":
+            if log_record.name == "sanic.error.iniesta":
                 break
         assert "[INIESTA] Error while handling message:" in log_record.message
         assert hasattr(log_record, "sqs_attributes")
@@ -341,26 +341,33 @@ class TestSQSClient(SQSInfra):
             mock_hook_post_message_hander,
         )
 
-        import uuid
-
         message_ids = []
+        lock_tasks = []
         # set lock
         for m in queue_ten_messages:
-            redisdb.set(
-                SQSClient.lock_key.format(message_id=m["MessageId"]),
-                str(uuid.uuid4()),
+            lock_tasks.append(
+                client.lock_manager.lock(
+                    SQSClient.lock_key.format(message_id=m["MessageId"])
+                )
             )
+
+            # redisdb.set(
+            #     SQSClient.lock_key.format(message_id=m["MessageId"]),
+            #     str(uuid.uuid4()),
+            # )
             message_ids.append(m["MessageId"])
+
+        await asyncio.gather(*lock_tasks)
 
         await client._polling_task
 
-        logged_messaged_ids = [
+        logged_message_ids = [
             log.sqs_message_id
             for log in caplog.records
             if hasattr(log, "sqs_message_id")
         ]
         for mid in message_ids:
-            assert mid in logged_messaged_ids
+            assert mid in logged_message_ids
 
         for log in caplog.records:
             if hasattr(log, "sqs_message_id"):

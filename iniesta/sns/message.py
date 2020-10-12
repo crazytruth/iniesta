@@ -5,7 +5,7 @@ import ujson as json
 
 from insanic.conf import settings
 
-from iniesta.loggers import logger, error_logger
+from iniesta.log import logger, error_logger
 from iniesta.sessions import BotoSession
 from iniesta.messages import MessageAttributes
 

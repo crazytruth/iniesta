@@ -5,7 +5,7 @@ import hashlib
 import ujson as json
 
 from insanic.conf import settings
-from iniesta.loggers import error_logger
+from iniesta.log import error_logger
 from iniesta.messages import MessageAttributes
 from iniesta.sessions import BotoSession
 

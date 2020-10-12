@@ -8,9 +8,11 @@ from aioredlock import Aioredlock, LockError
 from inspect import signature, isawaitable, isfunction
 from insanic.conf import settings
 from insanic.exceptions import ImproperlyConfigured
-from insanic.log import logger, error_logger
+
+# from insanic.log import logger, error_logger
 
 from iniesta.exceptions import StopPolling
+from iniesta.log import logger, error_logger
 from iniesta.sessions import BotoSession
 from iniesta.sns import SNSClient
 from iniesta.utils import filter_list_to_filter_policies
@@ -311,16 +313,19 @@ class SQSClient:
         :return: Returns the response of the delete_message request.
         """
 
+        message_id = message.message_id
         # if success must delete message from sqs
         logger.info(
-            f"[INIESTA] Message handled successfully: msg_id={message.message_id}"
+            f"[INIESTA] Message handled successfully: msg_id={message_id}",
+            extra={"sqs_message_id": message_id},
         )
         resp = await client.delete_message(
             QueueUrl=self.queue_url, ReceiptHandle=message.receipt_handle
         )
         logger.debug(
-            f"[INIESTA] Message deleted: msg_id={message.message_id} "
-            f"receipt_handle={message.receipt_handle}"
+            f"[INIESTA] Message deleted: msg_id={message_id} "
+            f"receipt_handle={message.receipt_handle}",
+            extra={"sqs_message_id": message_id},
         )
         return resp
 
