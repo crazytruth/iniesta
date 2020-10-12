@@ -18,11 +18,15 @@ setup(
     url="https://github.com/crazytruth/iniesta",
     packages=find_packages(include=["iniesta"], exclude=["docs", "tests"]),
     include_package_data=True,
-    install_requires=["insanic-framework", "aiobotocore>=0.12.0", "aioredlock"],
+    install_requires=[
+        "insanic-framework",
+        "aiobotocore>=0.12.0",
+        "aioredlock",
+        "Click",
+    ],
     license="MIT",
     zip_safe=False,
     keywords="iniesta",
-    extras_require={"cli": ["Click>=7.0"]},
     classifiers=[
         "Development Status :: 2 - Pre-Alpha",
         "Intended Audience :: Developers",

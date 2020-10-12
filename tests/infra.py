@@ -1,4 +1,4 @@
-import boto3
+import botocore
 import pytest
 import ujson as json
 
@@ -9,6 +9,9 @@ from iniesta.sessions import BotoSession
 
 
 class InfraBase:
+    def aws_client(self, service, **kwargs):
+        return botocore.session.get_session().create_client(service, **kwargs)
+
     @pytest.fixture(autouse=True)
     def load_configs(self):
         Iniesta.load_config(settings)
@@ -88,14 +91,15 @@ class SNSInfra(InfraBase):
     @pytest.fixture(scope="module")
     def create_global_sns(self, aws_client_kwargs):
 
-        sns = boto3.client("sns", **aws_client_kwargs)
+        sns = self.aws_client("sns", **aws_client_kwargs)
         response = sns.create_topic(Name=self.topic_name)
         yield response
         sns.delete_topic(TopicArn=response["TopicArn"])
 
     @pytest.fixture(scope="module")
     def create_service_sqs(self, session_id, aws_client_kwargs):
-        sqs = boto3.client("sqs", **aws_client_kwargs)
+
+        sqs = self.aws_client("sqs", **aws_client_kwargs)
 
         # template for queue name is `iniesta-{environment}-{service_name}
         response = sqs.create_queue(QueueName=self.queue_name)
@@ -118,7 +122,7 @@ class SNSInfra(InfraBase):
         filter_policy,
         aws_client_kwargs,
     ):
-        sns = boto3.client("sns", **aws_client_kwargs)
+        sns = self.aws_client("sns", **aws_client_kwargs)
 
         response = sns.subscribe(
             TopicArn=create_global_sns["TopicArn"],
@@ -139,7 +143,7 @@ class SQSInfra(InfraBase):
 
     @pytest.fixture(scope="module")
     def create_service_sqs(self, session_id, aws_client_kwargs):
-        sqs = boto3.client("sqs", **aws_client_kwargs)
+        sqs = self.aws_client("sqs", **aws_client_kwargs)
 
         # template for queue name is `iniesta-{environment}-{service_name}
         while True:
@@ -171,7 +175,7 @@ class SQSInfra(InfraBase):
         aws_client_kwargs,
     ):
 
-        sqs = boto3.client("sqs", **aws_client_kwargs)
+        sqs = self.aws_client("sqs", **aws_client_kwargs)
 
         response = sqs.set_queue_attributes(
             QueueUrl=create_service_sqs["QueueUrl"],

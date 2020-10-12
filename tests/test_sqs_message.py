@@ -1,6 +1,5 @@
 import uuid
 
-import boto3
 import pytest
 from botocore.exceptions import ClientError
 
@@ -107,7 +106,7 @@ class TestSQSMessage(SQSInfra):
 
         # try get message from queue
 
-        sqs_boto_client = boto3.client("sqs", **aws_client_kwargs)
+        sqs_boto_client = self.aws_client("sqs", **aws_client_kwargs)
         sqs_message = sqs_boto_client.receive_message(
             QueueUrl=sqs_client.queue_url,
             AttributeNames=["All"],

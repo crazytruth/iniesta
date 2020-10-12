@@ -3,7 +3,7 @@ from types import MappingProxyType
 from insanic import Insanic
 from insanic.exceptions import ImproperlyConfigured
 from insanic.functional import empty
-from sphinx.config import Config
+from sanic.config import Config
 
 from . import config
 from .choices import InitializationTypes

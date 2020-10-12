@@ -224,7 +224,7 @@ class SQSClient:
         if loop is None:
             loop = asyncio.get_event_loop()
 
-        self._polling_task = loop.create_task(self._poll())
+        self._polling_task = asyncio.ensure_future(self._poll())
         self._loop = loop
 
     async def stop_receiving_messages(self) -> None:
@@ -391,7 +391,7 @@ class SQSClient:
             except Exception:
                 if self._receive_messages and self._loop.is_running():
                     error_logger.critical("[INIESTA] POLLING TASK RESTARTING")
-                    self._polling_task = self._loop.create_task(self._poll())
+                    self._polling_task = asyncio.ensure_future(self._poll())
                 error_logger.exception("[INIESTA] POLLING EXCEPTION CAUGHT")
             finally:
                 await client.close()

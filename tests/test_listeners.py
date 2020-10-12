@@ -1,4 +1,3 @@
-import boto3
 import pytest
 import ujson as json
 
@@ -54,7 +53,7 @@ class TestListeners(SNSInfra, SQSInfra):
         aws_client_kwargs,
     ):
 
-        sns = boto3.client("sns", **aws_client_kwargs)
+        sns = self.aws_client("sns", **aws_client_kwargs)
 
         response = sns.subscribe(
             TopicArn=create_global_sns["TopicArn"],

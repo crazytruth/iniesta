@@ -1,5 +1,6 @@
 import asyncio
-import boto3
+import sys
+
 import botocore
 import pytest
 import ujson as json
@@ -11,6 +12,11 @@ from iniesta.sqs.client import default
 from iniesta.sqs.message import SQSMessage
 
 from .infra import SQSInfra
+
+if sys.hexversion >= 0x03080000:
+    from asyncio.exceptions import CancelledError
+else:
+    from concurrent.futures._base import CancelledError
 
 
 class TestSQSClient(SQSInfra):
@@ -34,14 +40,14 @@ class TestSQSClient(SQSInfra):
 
     @pytest.fixture
     def queue_message(self, create_service_sqs, aws_client_kwargs):
-        sqs = boto3.client("sqs", **aws_client_kwargs)
+        sqs = self.aws_client("sqs", **aws_client_kwargs)
         return self._queue_message(sqs, create_service_sqs["QueueUrl"])
 
     @pytest.fixture
     def queue_ten_messages(
         self, create_service_sqs, moto_endpoint_url, aws_client_kwargs
     ):
-        sqs = boto3.client("sqs", **aws_client_kwargs)
+        sqs = self.aws_client("sqs", **aws_client_kwargs)
         messages = []
         for i in range(10):
             resp = self._queue_message(sqs, create_service_sqs["QueueUrl"], i)
@@ -91,7 +97,10 @@ class TestSQSClient(SQSInfra):
         client = await SQSClient.initialize(queue_name=self.queue_name)
         client.start_receiving_messages()
 
-        await client._polling_task
+        try:
+            await client._polling_task
+        except CancelledError:
+            pass
 
         assert len(message_number) == 10
         assert sorted(message_number) == list(range(10))
@@ -160,7 +169,10 @@ class TestSQSClient(SQSInfra):
             mock_hook_post_message_handler,
         )
 
-        await client._polling_task
+        try:
+            await client._polling_task
+        except CancelledError:
+            pass
 
         assert len(message_tracker) > 0
 
@@ -183,8 +195,10 @@ class TestSQSClient(SQSInfra):
             "hook_post_receive_message_handler",
             mock_hook_post_message_handler,
         )
-
-        await client._polling_task
+        try:
+            await client._polling_task
+        except CancelledError:
+            pass
 
         # assert caplog.records[0].levelname == "ERROR"
         for log_record in caplog.records:
@@ -258,7 +272,10 @@ class TestSQSClient(SQSInfra):
             mock_hook_post_message_handler,
         )
 
-        await client._polling_task
+        try:
+            await client._polling_task
+        except CancelledError:
+            pass
 
         assert len(message_tracker) == 10
 
@@ -312,8 +329,10 @@ class TestSQSClient(SQSInfra):
             "hook_post_receive_message_handler",
             mock_hook_post_message_handler,
         )
-
-        await client._polling_task
+        try:
+            await client._polling_task
+        except CancelledError:
+            pass
 
         assert len(message_tracker) == 10
 
@@ -354,7 +373,10 @@ class TestSQSClient(SQSInfra):
 
         await asyncio.gather(*lock_tasks)
 
-        await client._polling_task
+        try:
+            await client._polling_task
+        except CancelledError:
+            pass
 
         logged_message_ids = [
             log.sqs_message_id

@@ -1,5 +1,4 @@
 import asyncio
-import boto3
 import pytest
 import ujson as json
 import uuid
@@ -17,13 +16,13 @@ class TestSNSSQSIntegration(SQSInfra, SNSInfra):
     def cancel_polling(self, monkeypatch, create_service_sqs):
         async def mock_hook_post_message_handler(queue_url):
             # NOTE: due to The security token included in the request is invalid, I comment out this please check it
-            # sqs = boto3.resource('sqs', region_name=sqs_region_name,
+            # sqs = botocore.resource('sqs', region_name=sqs_region_name,
             #                      aws_access_key_id=BotoSession.aws_access_key_id,
             #                      aws_secret_access_key=BotoSession.aws_secret_access_key)
             # queue = sqs.Queue(queue_url)
             # if int(queue.attributes['ApproximateNumberOfMessages']) == 0:
             #     raise StopPolling("Stop")
-            sqs = boto3.client(
+            sqs = self.aws_client(
                 "sqs",
                 endpoint_url=queue_url,
                 aws_access_key_id=BotoSession.aws_access_key_id,
