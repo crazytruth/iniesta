@@ -232,8 +232,8 @@ class SQSClient:
         Method to stop polling
         """
         self._receive_messages = False
-        self._polling_task.cancel()
         await self.lock_manager.destroy()
+        self._polling_task.cancel()
 
     async def handle_message(self, message: SQSMessage) -> tuple:
         """

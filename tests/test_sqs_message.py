@@ -1,5 +1,8 @@
+import uuid
+
 import boto3
 import pytest
+from botocore.exceptions import ClientError
 
 from iniesta import Iniesta
 from iniesta.sqs import SQSClient, SQSMessage
@@ -89,7 +92,6 @@ class TestSQSMessage(SQSInfra):
     async def test_send(
         self, create_service_sqs, sqs_client, aws_client_kwargs
     ):
-        import uuid
 
         random_uuid = uuid.uuid4().hex
 
@@ -120,3 +122,15 @@ class TestSQSMessage(SQSInfra):
         assert received_message.body == message.body == random_uuid
 
         assert received_message.message_attributes == message.message_attributes
+        assert received_message.checksum_body()
+
+    async def test_send_failure_client_error(
+        self, create_service_sqs, sqs_client, aws_client_kwargs
+    ):
+        random_uuid = uuid.uuid4().hex
+        sqs_client.queue_url = sqs_client.queue_url + "1"
+
+        message = SQSMessage(sqs_client, random_uuid)
+
+        with pytest.raises(ClientError):
+            await message.send()

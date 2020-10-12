@@ -192,7 +192,7 @@ class _Iniesta(object):
             if len(app.config.INIESTA_SQS_CONSUMER_FILTERS) == 0:
                 raise ImproperlyConfigured(
                     "INIESTA_SQS_CONSUMER_FILTERS is an empty list. "
-                    "Please specifiy events to receive!"
+                    "Please specify events to receive!"
                 )
 
             listener = IniestaListener()

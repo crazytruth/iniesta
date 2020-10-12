@@ -1,8 +1,8 @@
 from typing import Any
 
-import botocore
 import hashlib
 import ujson as json
+from botocore.exceptions import ClientError
 
 from insanic.conf import settings
 from iniesta.log import error_logger
@@ -31,7 +31,7 @@ class SQSMessage(MessageAttributes):
 
     :param client: The client that will be sending this message.
     :type client: :code:`SQSClient`
-    :param message: The message to send. A json dumpable value.
+    :param message: The message to send. A json serializable value.
     """
 
     def __init__(self, client, message: Any) -> None:
@@ -68,7 +68,7 @@ class SQSMessage(MessageAttributes):
             message_object["MessageAttributes"] = message.get(
                 "MessageAttributes", {}
             )
-        except KeyError as e:
+        except KeyError as e:  # pragma: no cover
             raise ValueError(f"SQS Message is invalid: {e.args[0]}")
         else:
             return message_object
@@ -92,7 +92,7 @@ class SQSMessage(MessageAttributes):
         To set the length of time in seconds to delay the message.
 
         :raises TypeError: If the value is not an int.
-        :raises ValueError: If the value is not inbetween 0 and 900.
+        :raises ValueError: If the value is not between 0 and 900.
         """
         if not isinstance(value, int):
             raise TypeError(
@@ -161,10 +161,11 @@ class SQSMessage(MessageAttributes):
 
         return _message_attributes
 
-    async def send(self) -> None:
+    async def send(self):
         """
         Sends this message to the queue defined in client.
 
+        :rtype: :code:`SQSMessage`
         :raises botocore.exceptions.ClientError: If there was an issue when sending the message to SQS.
         """
         session = BotoSession.get_session()
@@ -187,11 +188,11 @@ class SQSMessage(MessageAttributes):
                 self.message_id = message["MessageId"]
                 self.md5_of_body = message["MD5OfMessageBody"]
                 return self
-        except botocore.exceptions.ClientError as e:
+        except ClientError as e:
             error_logger.critical(
                 f"[{e.response['Error']['Code']}]: {e.response['Error']['Message']}"
             )
             raise
-        except Exception:
+        except Exception:  # pragma: no cover
             error_logger.exception("Sending SQS message failed.")
             raise

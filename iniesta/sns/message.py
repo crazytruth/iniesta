@@ -50,7 +50,7 @@ class SNSMessage(MessageAttributes):
         """
         Setter for the message body of the request.
 
-        :param value: Any json dumpable str value.
+        :param value: Any json serializable value.
         :raises TypeError: If the value is not able to be json dumpable.
         :raises ValueError: If the message is too long to be published.
         """
@@ -156,7 +156,7 @@ class SNSMessage(MessageAttributes):
         **message_attributes,
     ):
         """
-        Helper method to initialize an event message.
+        A factory method to initialize an event message.
 
         :param client: The initialized SNSClient
         :type client: :code:`SNSClient`

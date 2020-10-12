@@ -196,12 +196,16 @@ class TestSQSClient(SQSInfra):
         assert hasattr(log_record, "sqs_attributes")
         assert hasattr(log_record, "sqs_message_id")
 
-        assert (
-            getattr(
-                caplog.records[0], "iniesta_pass", caplog.records[0].message
+        try:
+            assert (
+                getattr(
+                    caplog.records[0], "iniesta_pass", caplog.records[0].message
+                )
+                == "test_event"
             )
-            == "test_event"
-        )
+        except AssertionError:
+
+            raise
 
     async def test_handle_message(
         self, create_service_sqs, queue_ten_messages, monkeypatch,
@@ -314,12 +318,7 @@ class TestSQSClient(SQSInfra):
         assert len(message_tracker) == 10
 
     async def test_handle_message_lock(
-        self,
-        create_service_sqs,
-        queue_ten_messages,
-        monkeypatch,
-        redisdb,
-        caplog,
+        self, create_service_sqs, queue_ten_messages, monkeypatch, caplog,
     ):
         message_tracker = []
 
@@ -351,10 +350,6 @@ class TestSQSClient(SQSInfra):
                 )
             )
 
-            # redisdb.set(
-            #     SQSClient.lock_key.format(message_id=m["MessageId"]),
-            #     str(uuid.uuid4()),
-            # )
             message_ids.append(m["MessageId"])
 
         await asyncio.gather(*lock_tasks)

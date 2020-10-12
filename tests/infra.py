@@ -15,7 +15,7 @@ class InfraBase:
 
     @pytest.fixture(autouse=True)
     def set_endpoint_on_settings(self, monkeypatch, moto_endpoint_url):
-        print("Mocking Endpoints")
+
         monkeypatch.setattr(
             settings,
             "INIESTA_SNS_ENDPOINT_URL",

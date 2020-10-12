@@ -167,7 +167,7 @@ class TestIniestaInitialize(InitializeFixtures):
         invalid_initialization_types,
         set_sns_arn,
     ):
-        print(invalid_initialization_types)
+
         monkeypatch.setattr(
             settings,
             "INIESTA_INITIALIZATION_TYPE",
