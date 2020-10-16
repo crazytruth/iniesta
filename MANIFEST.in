@@ -3,7 +3,7 @@ global-exclude __pycache__
 recursive-include iniesta *.py
 include AUTHORS.rst
 include CONTRIBUTING.rst
-include HISTORY.rst
+include CHANGELOG.rst
 include LICENSE
 include README.rst
 include tox.ini

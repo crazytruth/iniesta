@@ -15,10 +15,10 @@ from insanic.exceptions import APIException
 
 class SNSClient:
     """
-    initialize client with topic arn and endpoint url
+    Initialize client with topic arn and endpoint url.
 
     :param topic_arn: If you would like to initialize this client with a
-        different topic. Defaults to :code:`INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN` if not passed.
+     different topic. Defaults to :code:`INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN` if not passed.
     :param region_name: Takes priority or defaults to :code:`INIESTA_SNS_REGION_NAME` settings.
     :param endpoint_url: Takes priority or defaults to :code:`INIESTA_SNS_ENDPOINT_URL` settings.
     """
@@ -50,7 +50,7 @@ class SNSClient:
         We needed to do this because of asyncio functionality
 
         :param topic_arn: If you would like to initialize this client with a
-        different topic. Defaults to :code:`INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN` if not passed.
+         different topic. Defaults to :code:`INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN` if not passed.
         :param region_name: Takes priority or defaults to :code:`INIESTA_SNS_REGION_NAME` settings.
         :param endpoint_url: Takes priority or defaults to :code:`INIESTA_SNS_ENDPOINT_URL` settings.
         :return: An initialized instance of :code:`cls` (:code:`SQSClient`).

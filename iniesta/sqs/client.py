@@ -1,5 +1,5 @@
 import asyncio
-from typing import Optional, Callable, Any
+from typing import Optional, Callable, Any, Union
 
 import botocore.exceptions
 import ujson as json
@@ -85,8 +85,11 @@ class SQSClient:
 
     @classmethod
     def default_queue_name(cls) -> str:
-        return settings.INIESTA_SQS_QUEUE_NAME_TEMPLATE.format(
-            env=settings.ENVIRONMENT, service_name=settings.SERVICE_NAME
+        return (
+            settings.INIESTA_SQS_QUEUE_NAME
+            or settings.INIESTA_SQS_QUEUE_NAME_TEMPLATE.format(
+                env=settings.ENVIRONMENT, service_name=settings.SERVICE_NAME
+            )
         )
 
     @classmethod
@@ -399,24 +402,28 @@ class SQSClient:
         return "Shutdown"  # pragma: no cover
 
     @classmethod
-    def handler(cls, arg=None) -> Callable:
+    def handler(
+        cls, event: Union[Callable, str, list, tuple] = None
+    ) -> Callable:
         """
         Decorator for attaching a message handler for an event or if None, a default handler.
         """
 
-        if arg and isfunction(arg):
-            cls.add_handler(arg, default)
-            return arg
+        if event and isfunction(event):
+            cls.add_handler(event, default)
+            return event
         else:
 
             def register_handler(func):
-                cls.add_handler(func, default if arg is None else arg)
+                cls.add_handler(func, default if event is None else event)
                 return func
 
             return register_handler
 
     @classmethod
-    def add_handler(cls, handler: Callable, event: str) -> None:
+    def add_handler(
+        cls, handler: Callable, event: Union[str, list, tuple] = default
+    ) -> None:
         """
         Method for manually declaring a handler for event(s).
 

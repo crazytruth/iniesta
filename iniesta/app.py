@@ -12,10 +12,16 @@ from .utils import filter_list_to_filter_policies
 
 
 class _Iniesta(object):
+    """
+    Initializes Iniesta with different methods.
+    You should probably not use this. You should
+    import just Iniesta.
+
+    :code:`from iniesta import Iniesta`
+    """
+
     def __init__(self) -> None:
-        """
-        Initializes Iniesta with different methods. This is a single instance.
-        """
+
         self.config_imported = False
         self._initialization_type = empty
 
@@ -71,13 +77,13 @@ class _Iniesta(object):
                 delattr(settings_object, c)
         self.config_imported = False
 
-    def _order_initialization_type(self, settings_object: Config) -> None:
+    def _order_initialization_type(self, settings_object: Config) -> list:
         try:
             init_types = settings_object.INIESTA_INITIALIZATION_TYPE
             return sorted([InitializationTypes[it] for it in init_types])
         except (KeyError, TypeError):
             raise ImproperlyConfigured(
-                f"{str(init_types)} is"
+                f"{str(init_types)} is "
                 f"an invalid initialization type. "
                 f"Choices are {', '.join(str(i) for i in self.INITIALIZATION_MAPPING.keys())}"
             )
@@ -167,7 +173,7 @@ class _Iniesta(object):
                 listener.before_server_stop_stop_polling, "before_server_stop"
             )
 
-    def _init_event_polling(self, app):
+    def _init_event_polling(self, app: Insanic) -> None:
         """
         Initializes for event polling.
 

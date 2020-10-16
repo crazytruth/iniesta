@@ -8,6 +8,11 @@ from insanic.conf import settings
 
 
 class MessageAttributes(UserDict):
+    """
+    Base class for :code:`SQSMessage` and :code:`SNSMessage`
+    because both messages uses message attributes.
+    """
+
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self["MessageAttributes"] = {}

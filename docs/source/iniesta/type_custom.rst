@@ -1,29 +1,19 @@
-==============
-Advanced Usage
-==============
+Custom Initialization
+=====================
 
-The init methods supplied on Iniesta are just wrappers for easily applying event
-polling and queue polling and producing to the event driven architecture. However,
-the clients can be used to publish and poll on custom SNS and SQS instances.
-
-Prerequisites
--------------
-
-- Need to load default settings or initialize
-
-.. code-block:: python
-
-    from iniesta import Iniesta
-    from insanic import Insanic
-
-    app = Insanic("service")
-    Iniesta.init_custom(app) # just loads iniesta configs
+Custom Initialization is where you don't want to Iniesta to
+do anything and would like to set everything up your self.
+By settings :code:`CUSTOM` in your
+:code:`INIESTA_INITIALIZATION_TYPE`, Iniesta, only loads the
+configs and you must create all the SNS and SQS Clients yourself,
+as well as managing the lifecycle of the client.
 
 
-To poll a custom SQS
---------------------
+Polling Custom Queue
+---------------------
 
-First we need to create a custom SQSClient and start polling in the listeners.
+First we need to create a custom SQSClient and start
+polling in the listeners.
 
 1. Initialize and instantiate a SQSClient in listener and start polling
 
@@ -49,7 +39,7 @@ First we need to create a custom SQSClient and start polling in the listeners.
     from iniesta import Iniesta
 
     app = Insanic("my_service")
-    Iniesta.init_custom(app)
+    Iniesta.init_app(app)
 
     from .listeners import after_server_start_start_polling, before_server_stop_stop_polling
 
@@ -70,14 +60,11 @@ First we need to create a custom SQSClient and start polling in the listeners.
         # do some stuff
         return None
 
-Make sure you import the handlers somewhere so they can be attached
 
-4. Run!
+4. Run
 
-
-
-To publish to custom SNS
-------------------------
+Publishing to Custom SNS
+-------------------------
 
 All we need to create a custom SNSClient and initialize it.
 
@@ -102,7 +89,7 @@ All we need to create a custom SNSClient and initialize it.
     from iniesta import Iniesta
 
     app = Insanic("service")
-    Iniesta.init_custom(app)
+    Iniesta.init_app(app)
 
     from .listeners import after_server_start_initialize_sns
 
@@ -116,7 +103,7 @@ All we need to create a custom SNSClient and initialize it.
 
     # somewhere.py maybe views.py
     from insanic.views import InsanicView
-    from insanic.responses import json_response
+    from sanic.response import json
 
     from iniesta.sns import SNSClient
 
@@ -125,8 +112,8 @@ All we need to create a custom SNSClient and initialize it.
 
         async def get(self, request, *args, **kwargs);
             # ... do some stuff
-            client = SNSClient(topic_arn="my:custom:topic:arn")
-            message = client.create_message("MyCustomEvent", {"command": "formation"})
+
+            message = request.app.sns_client.create_message("MyCustomEvent", {"command": "formation"})
             await message.publish()
 
-            return json_responses({}, status=200)
+            return json({}, status=200)
