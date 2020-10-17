@@ -3,10 +3,10 @@ import pytest
 
 from insanic import Insanic
 from insanic.conf import settings
+from insanic.exceptions import ImproperlyConfigured
 
 from iniesta import Iniesta
 from iniesta.choices import InitializationTypes
-from iniesta.exceptions import ImproperlyConfigured
 from iniesta.listeners import IniestaListener
 
 from .conftest import ALL_INITIALIZATION_TYPES
@@ -167,7 +167,7 @@ class TestIniestaInitialize(InitializeFixtures):
         invalid_initialization_types,
         set_sns_arn,
     ):
-        print(invalid_initialization_types)
+
         monkeypatch.setattr(
             settings,
             "INIESTA_INITIALIZATION_TYPE",
@@ -261,7 +261,7 @@ class TestIniestaInitialize(InitializeFixtures):
 
 
 class TestInitializeWithSNS(SNSInfra):
-    queue_name = "iniesta-test-xavi"
+    queue_name = "iniesta-tests-xavi"
 
     @pytest.fixture(autouse=True)
     def set_filters(self, monkeypatch):
@@ -271,12 +271,7 @@ class TestInitializeWithSNS(SNSInfra):
 
     @pytest.fixture()
     def insanic_application(
-        self,
-        sns_endpoint_url,
-        sqs_endpoint_url,
-        set_global_topic_arn,
-        set_filters,
-        monkeypatch,
+        self, set_global_topic_arn, set_filters, monkeypatch,
     ):
         monkeypatch.setattr(
             settings,

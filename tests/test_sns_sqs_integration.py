@@ -1,5 +1,4 @@
 import asyncio
-import boto3
 import pytest
 import ujson as json
 import uuid
@@ -13,24 +12,22 @@ from .infra import SNSInfra, SQSInfra
 
 
 class TestSNSSQSIntegration(SQSInfra, SNSInfra):
-
-    run_local = False
-
     @pytest.fixture(autouse=True)
     def cancel_polling(self, monkeypatch, create_service_sqs):
         async def mock_hook_post_message_handler(queue_url):
             # NOTE: due to The security token included in the request is invalid, I comment out this please check it
-            # sqs = boto3.resource('sqs', region_name=sqs_region_name,
+            # sqs = botocore.resource('sqs', region_name=sqs_region_name,
             #                      aws_access_key_id=BotoSession.aws_access_key_id,
             #                      aws_secret_access_key=BotoSession.aws_secret_access_key)
             # queue = sqs.Queue(queue_url)
             # if int(queue.attributes['ApproximateNumberOfMessages']) == 0:
             #     raise StopPolling("Stop")
-            sqs = boto3.client(
+            sqs = self.aws_client(
                 "sqs",
                 endpoint_url=queue_url,
                 aws_access_key_id=BotoSession.aws_access_key_id,
                 aws_secret_access_key=BotoSession.aws_secret_access_key,
+                region_name=BotoSession.aws_default_region,
             )
             response = sqs.get_queue_attributes(
                 QueueUrl=queue_url,
@@ -52,20 +49,19 @@ class TestSNSSQSIntegration(SQSInfra, SNSInfra):
         )
 
     @pytest.fixture(scope="function")
-    async def sns_client(self, create_global_sns, sns_endpoint_url):
+    async def sns_client(self, create_global_sns):
         return await SNSClient.initialize(
             topic_arn=create_global_sns["TopicArn"]
         )
 
     @pytest.fixture(scope="function")
-    async def sqs_client(self, sqs_endpoint_url, sns_client):
+    async def sqs_client(self, sns_client):
         client = await SQSClient.initialize(queue_name=self.queue_name)
         yield client
         SQSClient.handlers = {}
 
     async def test_integration(
         self,
-        start_local_aws,
         create_service_sqs,
         create_sqs_subscription,
         add_permissions,
@@ -105,12 +101,7 @@ class TestSNSSQSIntegration(SQSInfra, SNSInfra):
         await sqs_client.lock_manager.destroy()
 
     async def test_filters(
-        self,
-        start_local_aws,
-        create_sqs_subscription,
-        sqs_client,
-        sns_client,
-        add_permissions,
+        self, create_sqs_subscription, sqs_client, sns_client, add_permissions,
     ):
         some_id = uuid.uuid4().hex
         received_messages = []
@@ -143,7 +134,6 @@ class TestSNSSQSIntegration(SQSInfra, SNSInfra):
 
     async def test_delete_sqs_message(
         self,
-        start_local_aws,
         create_sqs_subscription,
         add_permissions,
         sqs_client,
@@ -186,22 +176,12 @@ class TestSNSSQSIntegration(SQSInfra, SNSInfra):
         await sqs_client.lock_manager.destroy()
 
     async def test_confirm_permissions(
-        self,
-        start_local_aws,
-        create_sqs_subscription,
-        add_permissions,
-        sqs_client,
-        sns_client,
+        self, create_sqs_subscription, add_permissions, sqs_client, sns_client,
     ):
         await sqs_client.confirm_permission()
 
     async def test_confirm_subscription(
-        self,
-        start_local_aws,
-        create_sqs_subscription,
-        add_permissions,
-        sqs_client,
-        sns_client,
+        self, create_sqs_subscription, add_permissions, sqs_client, sns_client,
     ):
         await asyncio.sleep(1)
         await sqs_client.confirm_subscription(sns_client.topic_arn)

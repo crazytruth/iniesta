@@ -1,8 +1,9 @@
-import boto3
+import uuid
+
 import pytest
+from botocore.exceptions import ClientError
 
 from iniesta import Iniesta
-from iniesta.sessions import BotoSession
 from iniesta.sqs import SQSClient, SQSMessage
 from iniesta.sqs.message import ERROR_MESSAGES
 
@@ -10,12 +11,10 @@ from .infra import SQSInfra
 
 
 class TestSQSMessage(SQSInfra):
-    queue_name = "iniesta-test-xavi"
+    queue_name = "iniesta-tests-xavi"
 
     @pytest.fixture
-    def sqs_client(
-        self, insanic_application, create_service_sqs, sqs_endpoint_url
-    ):
+    def sqs_client(self, insanic_application, create_service_sqs):
         Iniesta.load_config(insanic_application.config)
         SQSClient.queue_urls = {
             SQSClient.default_queue_name(): create_service_sqs["QueueUrl"]
@@ -89,8 +88,9 @@ class TestSQSMessage(SQSInfra):
         ):
             message.delay_seconds = -1
 
-    async def test_send(self, create_service_sqs, sqs_client):
-        import uuid
+    async def test_send(
+        self, create_service_sqs, sqs_client, aws_client_kwargs
+    ):
 
         random_uuid = uuid.uuid4().hex
 
@@ -106,13 +106,7 @@ class TestSQSMessage(SQSInfra):
 
         # try get message from queue
 
-        sqs_boto_client = boto3.client(
-            "sqs",
-            region_name=BotoSession.aws_default_region,
-            endpoint_url=sqs_client.endpoint_url,
-            aws_access_key_id=BotoSession.aws_access_key_id,
-            aws_secret_access_key=BotoSession.aws_secret_access_key,
-        )
+        sqs_boto_client = self.aws_client("sqs", **aws_client_kwargs)
         sqs_message = sqs_boto_client.receive_message(
             QueueUrl=sqs_client.queue_url,
             AttributeNames=["All"],
@@ -127,3 +121,15 @@ class TestSQSMessage(SQSInfra):
         assert received_message.body == message.body == random_uuid
 
         assert received_message.message_attributes == message.message_attributes
+        assert received_message.checksum_body()
+
+    async def test_send_failure_client_error(
+        self, create_service_sqs, sqs_client, aws_client_kwargs
+    ):
+        random_uuid = uuid.uuid4().hex
+        sqs_client.queue_url = sqs_client.queue_url + "1"
+
+        message = SQSMessage(sqs_client, random_uuid)
+
+        with pytest.raises(ClientError):
+            await message.send()

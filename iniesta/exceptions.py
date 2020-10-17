@@ -1,6 +1,6 @@
 class StopPolling(Exception):
-    pass
+    """
+    An exception to signal the polling task to stop.
+    """
 
-
-class ImproperlyConfigured(Exception):
     pass

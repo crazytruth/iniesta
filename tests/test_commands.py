@@ -18,12 +18,7 @@ class TestCommands(SNSInfra):
         yield CliRunner()
 
     def test_publish_success(
-        self,
-        runner,
-        start_local_aws,
-        create_global_sns,
-        sns_endpoint_url,
-        monkeypatch,
+        self, runner, create_global_sns, monkeypatch,
     ):
         monkeypatch.setattr(
             settings,

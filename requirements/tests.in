@@ -3,5 +3,6 @@ pytest
 pytest-cov
 pytest-redis
 pytest-sanic
-moto
-requests
+tox
+insanic-framework
+sanic<=20.7.0

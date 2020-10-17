@@ -105,7 +105,7 @@ def filter_policies():
 @click.option(
     "-m",
     "--message",
-    required=True,
+    required=False,
     type=str,
     help="Message body to publish into SNS",
 )
@@ -119,29 +119,32 @@ def filter_policies():
 def publish(event, message, version):
     # TODO: documentation for read me
 
+    # app = mock_application()
+    loop = asyncio.get_event_loop()
     Iniesta.load_config(settings)
 
-    if version is None:
-        version = 1
+    version = version or 1
+    message = message or {}
 
     sns_client = SNSClient()
 
-    loop = asyncio.get_event_loop()
     message = sns_client.create_message(
-        event=event, message=message, version=version
+        event=event, message=message, version=version, raw_event=True
     )
-    message.add_event(event, raw=True)
+    # message.add_event(event, raw=True)
     result = loop.run_until_complete(message.publish())
 
     if result["ResponseMetadata"]["HTTPStatusCode"] == 200:
         click.echo("Publish Success!")
     else:
         click.echo("Publish Failed!")
+    click.echo("\n")
     click.echo("REQUEST INFO")
     click.echo(f"Message Event : {message.event}")
     click.echo(f"Message Data : {message.message}")
     click.echo(f"Full Payload : {message}")
     click.echo(f"Message Length : {message.size}")
+    click.echo("\n")
     click.echo("RESPONSE INFO")
     click.echo(f"Message ID : {result['MessageId']}")
     click.echo(
@@ -155,7 +158,7 @@ def publish(event, message, version):
 @click.option(
     "-m",
     "--message",
-    required=True,
+    required=False,
     type=str,
     help="Message body to publish to SQS",
 )
@@ -164,9 +167,14 @@ def send(message):
 
     Iniesta.load_config(settings)
 
+    message = message or {}
+
     loop = asyncio.get_event_loop()
     sqs_client = loop.run_until_complete(SQSClient.initialize())
     message = sqs_client.create_message(message=message)
     loop.run_until_complete(message.send())
+
+    click.echo("Message Sent")
+    click.echo(f"MessageId: {message.message_id}")
 
     Iniesta.unload_config(settings)

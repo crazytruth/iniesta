@@ -8,10 +8,10 @@ little bit helps, and credit will always be given.
 You can contribute in many ways:
 
 Types of Contributions
-----------------------
+======================
 
 Report Bugs
-~~~~~~~~~~~
+------------
 
 Report bugs at https://github.com/MyMusicTaste/iniesta/issues.
 
@@ -22,26 +22,26 @@ If you are reporting a bug, please include:
 * Detailed steps to reproduce the bug.
 
 Fix Bugs
-~~~~~~~~
+------------
 
 Look through the GitHub issues for bugs. Anything tagged with "bug"
 is open to whoever wants to implement it.
 
 Implement Features
-~~~~~~~~~~~~~~~~~~
+------------------------
 
 Look through the GitHub issues for features. Anything tagged with "feature"
 is open to whoever wants to implement it.
 
 Write Documentation
-~~~~~~~~~~~~~~~~~~~
+------------------------
 
 iniesta could always use more documentation, whether as part of the
 official iniesta docs, in docstrings, or even on the web in blog posts,
 articles, and such.
 
 Submit Feedback
-~~~~~~~~~~~~~~~
+----------------
 
 The best way to send feedback is to file an issue at https://github.com/MyMusicTaste/iniesta/issues.
 
@@ -53,7 +53,7 @@ If you are proposing a feature:
   are welcome :)
 
 Get Started!
-------------
+============
 
 Ready to contribute? Here's how to set up `iniesta` for
 local development.
@@ -101,9 +101,99 @@ Before you submit a pull request, check that it meets these guidelines:
    make sure that the tests pass for all supported Python versions.
 
 
-Tips
-----
 
-To run a subset of tests::
+Development
+===========
+To make test environment your local machine,
 
-	 $ py.test test/test_iniesta.py
+Requirements:
+
+
+- Environment Variable Settings for AWS
+    You need to add this environment variable file in ``~/.aws/`` directory with following file name.
+
+    In file name ``config``:
+
+    .. code-block:: vim
+
+        [default]
+        region = ap-northeast-1
+
+        [profile mmt-msa]
+        region = us-east-1
+        output = json
+    ..
+
+    In file name ``credentials``:
+
+    .. code-block:: vim
+
+        [default]
+        aws_access_key_id = YOUR_ACCESS_KEY_ID
+        aws_secret_access_key = YOUR_SECRET_ACCESS_KEY
+    ..
+
+    **For Credentials, You have better set it as Environment Variable in your IDE.**
+
+    You can refer to AWS credentials for AWS CLI document_.
+
+    .. _document : https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-envvars.html
+
+
+-  AWS Policy Settings
+    You need to add policies related to actions of SQS and SNS.
+    The following actions need to be added in your IAM.
+
+    SQS:
+
+    .. code-block:: bash
+
+        "Action": [
+                "sqs:DeleteMessage",
+                "sqs:GetQueueUrl",
+                "sqs:DeleteMessageBatch",
+                "sqs:ReceiveMessage",
+                "sqs:DeleteQueue",
+                "sqs:SendMessage",
+                "sqs:GetQueueAttributes",
+                "sqs:CreateQueue",
+                "sqs:SetQueueAttributes"
+            ],
+        "Resource": "arn:aws:sqs:ap-northeast-1:<aws_account_id>:iniesta-test-*"
+    ..
+
+    SNS:
+
+    .. code-block:: bash
+
+        "Action": [
+                    "sns:ListSubscriptionsByTopic",
+                    "sns:Publish",
+                    "sns:GetTopicAttributes",
+                    "sns:DeleteTopic",
+                    "sns:CreateTopic",
+                    "sns:Subscribe",
+                    "sns:Unsubscribe",
+                    "sns:GetSubscriptionAttributes"
+                ],
+        "Resource": "arn:aws:sns:ap-northeast-1:<aws_account_id>:test-test-global-*"
+    ..
+
+
+- Test Requirements
+    Install all test requirements using commands below:
+
+    .. code-block:: bash
+
+        $ pip install -r requirements/dev.txt
+
+
+Testing
+=======
+
+.. code-block:: bash
+
+    $ pip install .[development]
+    $ pytest
+    # with coverage
+    $ pytest --cov=iniesta --cov-report term-missing:skip-covered

@@ -1,4 +1,8 @@
-def filter_list_to_filter_policies(event_key, filter_list):
+def filter_list_to_filter_policies(event_key: str, filter_list: list) -> dict:
+    """
+    Helper function to convert defined filter policies to
+    AWS API acceptable format.
+    """
     processed_filters = []
 
     for filters in filter_list:

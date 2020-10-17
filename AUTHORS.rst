@@ -2,12 +2,7 @@
 Credits
 =======
 
-Development Lead
-----------------
+Development
+-----------
 
-* Kwang Jin Kim <david@mymusictaste.com>
-
-Contributors
-------------
-
-None yet. Why not be the first?
+-   Kwang Jin Kim

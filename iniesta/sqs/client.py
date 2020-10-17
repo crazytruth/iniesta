@@ -1,13 +1,18 @@
 import asyncio
+from typing import Optional, Callable, Any, Union
+
 import botocore.exceptions
 import ujson as json
 
 from aioredlock import Aioredlock, LockError
 from inspect import signature, isawaitable, isfunction
 from insanic.conf import settings
-from insanic.log import logger, error_logger
+from insanic.exceptions import ImproperlyConfigured
 
-from iniesta.exceptions import StopPolling, ImproperlyConfigured
+# from insanic.log import logger, error_logger
+
+from iniesta.exceptions import StopPolling
+from iniesta.log import logger, error_logger
 from iniesta.sessions import BotoSession
 from iniesta.sns import SNSClient
 from iniesta.utils import filter_list_to_filter_policies
@@ -29,11 +34,11 @@ class SQSClient:
     def __init__(
         self,
         *,
-        queue_name=None,
-        endpoint_url=None,
-        region_name=None,
-        retry_count=None,
-        lock_timeout=None,
+        queue_name: str = None,
+        endpoint_url: str = None,
+        region_name: str = None,
+        retry_count: int = None,
+        lock_timeout: int = None,
     ):
         """
         Initializes a SQSClient instance
@@ -65,34 +70,41 @@ class SQSClient:
         lock_timeout = lock_timeout or settings.INIESTA_LOCK_TIMEOUT
 
         # TODO: get connection info from insanic get connection
+        connections = []
+        for cache_name, conn_info in settings.INSANIC_CACHES.items():
+            if cache_name.startswith("iniesta"):
+                connections.append(
+                    "redis://{HOST}:{PORT}/{DATABASE}".format(**conn_info)
+                )
+
         self.lock_manager = Aioredlock(
-            [
-                {
-                    "host": settings.REDIS_HOST,
-                    "port": settings.REDIS_PORT,
-                    "db": int(settings.REDIS_DB),
-                }
-            ],
+            connections,
             retry_count=retry_count,
-            lock_timeout=lock_timeout,
+            internal_lock_timeout=lock_timeout,
         )
 
     @classmethod
-    def default_queue_name(cls):
-        return settings.INIESTA_SQS_QUEUE_NAME_TEMPLATE.format(
-            env=settings.MMT_ENV, service_name=settings.SERVICE_NAME
+    def default_queue_name(cls) -> str:
+        return (
+            settings.INIESTA_SQS_QUEUE_NAME
+            or settings.INIESTA_SQS_QUEUE_NAME_TEMPLATE.format(
+                env=settings.ENVIRONMENT, service_name=settings.SERVICE_NAME
+            )
         )
 
     @classmethod
     async def initialize(
-        cls, *, queue_name=None, endpoint_url=None, region_name=None
+        cls,
+        *,
+        queue_name: Optional[str] = None,
+        endpoint_url: Optional[str] = None,
+        region_name: Optional[str] = None,
     ):
         """
         The initialization classmethod that should be first run before any subsequent SQSClient initializations.
 
         :param queue_name: queue_name if want to initialize client with a different queue
-        :return:
-        :rtype: SQSClient instance
+        :rtype: :code:`SQSClient`
         """
         session = BotoSession.get_session()
 
@@ -129,11 +141,13 @@ class SQSClient:
 
         return sqs_client
 
-    async def confirm_subscription(self, topic_arn):
+    async def confirm_subscription(self, topic_arn: str) -> None:
         """
         Confirms the correct subscriptions are in place in AWS SNS
 
-        :param topic_arn: Topic to check subscriptions for
+        :param topic_arn: Topic to check subscriptions for.
+        :raises EnvironmentError: If the the queue is not found.
+        :raises AssertionError: If the registered filters on AWS do not match current config filters.
         """
 
         sns_client = SNSClient(topic_arn)
@@ -165,9 +179,12 @@ class SQSClient:
                     f"{filter_policies} {self.filters}"
                 )
 
-    async def confirm_permission(self):
+    async def confirm_permission(self) -> None:
         """
         Confirms correct permissions are in place.
+
+        :raises ImproperlyConfigured: If the permissions were not found.
+        :raises AssertionError: If the permissions are not correctly configured on AWS.
         """
         session = BotoSession.get_session()
         async with session.create_client(
@@ -193,7 +210,7 @@ class SQSClient:
         # assert statement['Condition']['ArnEquals']['aws:SourceArn'] == topic_arn
 
     @property
-    def filters(self):
+    def filters(self) -> dict:
         if self._filters is None:
             self._filters = filter_list_to_filter_policies(
                 settings.INIESTA_SNS_EVENT_KEY,
@@ -201,38 +218,34 @@ class SQSClient:
             )
         return self._filters
 
-    def start_receiving_messages(self, loop=None):
+    def start_receiving_messages(self, loop=None) -> None:
         """
         Method to start polling for messages.
-
-        :param loop: Instance of event loop
         """
         self._receive_messages = True
 
         if loop is None:
             loop = asyncio.get_event_loop()
 
-        self._polling_task = loop.create_task(self._poll())
+        self._polling_task = asyncio.ensure_future(self._poll())
         self._loop = loop
 
-    async def stop_receiving_messages(self):
+    async def stop_receiving_messages(self) -> None:
         """
         Method to stop polling
         """
         self._receive_messages = False
-        self._polling_task.cancel()
         await self.lock_manager.destroy()
+        self._polling_task.cancel()
 
-    async def handle_message(self, message):
+    async def handle_message(self, message: SQSMessage) -> tuple:
         """
         Method that hold logic to handle a certain type of mesage
 
         :param message: Message to handle
-        :type message: instance of SQSMessage
         :raises LockError: If lock could not be acquired for the message
         :raises Exception: General exception handler attaches the message and message handler
         :return: Returns a tuple of the message and result of the handler
-        :rtype: tuple
         """
         lock = None
 
@@ -271,7 +284,10 @@ class SQSClient:
             if lock:
                 await self.lock_manager.unlock(lock)
 
-    def handle_error(self, exc):
+    def handle_error(self, exc: Exception) -> None:
+        """
+        If an exception occured while handling the message, log the error.
+        """
 
         message = exc.message
         handler = getattr(exc, "handler", None)
@@ -292,119 +308,127 @@ class SQSClient:
             extra=extra,
         )
 
-    async def handle_success(self, client, message):
+    async def handle_success(self, client, message: SQSMessage) -> dict:
         """
         Success handler for a message. Deletes the message from SQS.
 
         :param client: aws sqs client
-        :param message: SQSMessage Object
         :return: Returns the response of the delete_message request.
         """
 
+        message_id = message.message_id
         # if success must delete message from sqs
         logger.info(
-            f"[INIESTA] Message handled successfully: msg_id={message.message_id}"
+            f"[INIESTA] Message handled successfully: msg_id={message_id}",
+            extra={"sqs_message_id": message_id},
         )
         resp = await client.delete_message(
             QueueUrl=self.queue_url, ReceiptHandle=message.receipt_handle
         )
         logger.debug(
-            f"[INIESTA] Message deleted: msg_id={message.message_id} "
-            f"receipt_handle={message.receipt_handle}"
+            f"[INIESTA] Message deleted: msg_id={message_id} "
+            f"receipt_handle={message.receipt_handle}",
+            extra={"sqs_message_id": message_id},
         )
         return resp
 
-    async def _poll(self):
+    async def _poll(self) -> str:
+        """
+        The long running method that consistently polls the SQS queue for
+        messages.
+        :return:
+        """
         session = BotoSession.get_session()
-        client = session.create_client(
+
+        async with session.create_client(
             "sqs",
             region_name=self.region_name,
             endpoint_url=self.endpoint_url,
             aws_access_key_id=BotoSession.aws_access_key_id,
             aws_secret_access_key=BotoSession.aws_secret_access_key,
-        )
-        try:
-            while self._loop.is_running() and self._receive_messages:
-                try:
-                    response = await client.receive_message(
-                        QueueUrl=self.queue_url,
-                        MaxNumberOfMessages=settings.INIESTA_SQS_RECEIVE_MESSAGE_MAX_NUMBER_OF_MESSAGES,
-                        WaitTimeSeconds=settings.INIESTA_SQS_RECEIVE_MESSAGE_WAIT_TIME_SECONDS,
-                        AttributeNames=["All"],
-                        MessageAttributeNames=["All"],
-                    )
-                except botocore.exceptions.ClientError as e:
-                    error_logger.critical(
-                        f"[INIESTA] [{e.response['Error']['Code']}]: {e.response['Error']['Message']}"
-                    )
-                else:
-                    event_tasks = [
-                        asyncio.ensure_future(
-                            self.handle_message(
-                                SQSMessage.from_sqs(client, message)
-                            )
+        ) as client:
+            try:
+                while self._loop.is_running() and self._receive_messages:
+                    try:
+                        response = await client.receive_message(
+                            QueueUrl=self.queue_url,
+                            MaxNumberOfMessages=settings.INIESTA_SQS_RECEIVE_MESSAGE_MAX_NUMBER_OF_MESSAGES,
+                            WaitTimeSeconds=settings.INIESTA_SQS_RECEIVE_MESSAGE_WAIT_TIME_SECONDS,
+                            AttributeNames=["All"],
+                            MessageAttributeNames=["All"],
                         )
-                        for message in response.get("Messages", [])
-                    ]
+                    except botocore.exceptions.ClientError as e:
+                        error_logger.critical(
+                            f"[INIESTA] [{e.response['Error']['Code']}]: {e.response['Error']['Message']}"
+                        )
+                    else:
+                        event_tasks = [
+                            asyncio.ensure_future(
+                                self.handle_message(
+                                    SQSMessage.from_sqs(client, message)
+                                )
+                            )
+                            for message in response.get("Messages", [])
+                        ]
 
-                    for fut in asyncio.as_completed(event_tasks):
-                        # NOTE: must catch CancelledError and raise
-                        try:
-                            message_obj, result = await fut
-                        except asyncio.CancelledError:
-                            raise
-                        except Exception as e:
-                            # if error log failure and pass so sqs message persists and message becomes visible again
-                            self.handle_error(e)
-                        else:
-                            await self.handle_success(client, message_obj)
+                        for fut in asyncio.as_completed(event_tasks):
+                            # NOTE: must catch CancelledError and raise
+                            try:
+                                message_obj, result = await fut
+                            except asyncio.CancelledError:
+                                raise
+                            except Exception as e:
+                                # if error log failure and pass so sqs message persists and message becomes visible again
+                                self.handle_error(e)
+                            else:
+                                await self.handle_success(client, message_obj)
 
-                    await self.hook_post_receive_message_handler()
-        except asyncio.CancelledError:
-            logger.info("[INIESTA] POLLING TASK CANCELLED")
-            return "Cancelled"
-        except StopPolling:
-            # mainly used for tests
-            logger.info("[INIESTA] STOP POLLING")
-            return "Stopped"
-        except Exception:
-            if self._receive_messages and self._loop.is_running():
-                error_logger.critical("[INIESTA] POLLING TASK RESTARTING")
-                self._polling_task = self._loop.create_task(self._poll())
-            error_logger.exception("[INIESTA] POLLING EXCEPTION CAUGHT")
-        finally:
-            await client.close()
+                        await self.hook_post_receive_message_handler()
+            except asyncio.CancelledError:
+                logger.info("[INIESTA] POLLING TASK CANCELLED")
+                return "Cancelled"
+            except StopPolling:
+                # mainly used for tests
+                logger.info("[INIESTA] STOP POLLING")
+                return "Stopped"
+            except Exception:
+                if self._receive_messages and self._loop.is_running():
+                    error_logger.critical("[INIESTA] POLLING TASK RESTARTING")
+                    self._polling_task = asyncio.ensure_future(self._poll())
+                error_logger.exception("[INIESTA] POLLING EXCEPTION CAUGHT")
+            finally:
+                await client.close()
 
         return "Shutdown"  # pragma: no cover
 
     @classmethod
-    def handler(cls, arg=None):
+    def handler(
+        cls, event: Union[Callable, str, list, tuple] = None
+    ) -> Callable:
         """
         Decorator for attaching a message handler for an event or if None, a default handler.
-
-        :param arg:
-        :return:
         """
 
-        if arg and isfunction(arg):
-            cls.add_handler(arg, default)
-            return arg
+        if event and isfunction(event):
+            cls.add_handler(event, default)
+            return event
         else:
 
             def register_handler(func):
-                cls.add_handler(func, default if arg is None else arg)
+                cls.add_handler(func, default if event is None else event)
                 return func
 
             return register_handler
 
     @classmethod
-    def add_handler(cls, handler, event):
+    def add_handler(
+        cls, handler: Callable, event: Union[str, list, tuple] = default
+    ) -> None:
         """
         Method for manually declaring a handler for event(s).
 
-        :param handler: a function to execute
-        :param event: the event(or a list of event) the function is attached to
-        :return:
+        :param handler: A function to execute
+        :param event: The event(or a list of event) the function is attached to.
         """
         cls._validate_handler_signature(handler)
 
@@ -445,13 +469,13 @@ class SQSClient:
     async def hook_post_receive_message_handler(self):  # pragma: no cover
         pass
 
-    def create_message(self, message):
+    def create_message(self, message: Any) -> SQSMessage:
         """
         A helper method to create an SQSMessage
 
-        :param message: The message body.
-        :type mesage: str or json dumpable object
-        :return: SQSMessage instance
-        :rtype: SQSMessage
+        :param message: The message body. A json encodable object.
         """
+        if not isinstance(message, str):
+            message = json.dumps(message)
+
         return SQSMessage(self, message)

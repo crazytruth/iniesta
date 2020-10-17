@@ -21,10 +21,6 @@ class TestBotoSession:
 
         assert session1 is session2
 
-    def test_aws_credentials_empty(self):
-        assert BotoSession.aws_access_key_id is None
-        assert BotoSession.aws_secret_access_key is None
-
     @pytest.mark.parametrize("access_key_id_prefix", ["iniesta", ""])
     @pytest.mark.parametrize("secret_access_key_prefix", ["iniesta", ""])
     def test_aws_credentials_fallback(
