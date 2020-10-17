@@ -1,15 +1,18 @@
-global-exclude *.py[co]
-global-exclude __pycache__
 recursive-include iniesta *.py
-include AUTHORS.rst
 include CONTRIBUTING.rst
 include CHANGELOG.rst
 include LICENSE
 include README.rst
 include tox.ini
-include requirements.txt
+include requirements/*.txt
 exclude *.png
-prune test
-prune docs
+exclude *.yaml
+graft tests
+graft docs
+graft .github
+prune docs/build
+recursive-exclude requirements *.in
 exclude .python-version
 exclude .readthedocs.yml
+global-exclude *.py[co]
+global-exclude __pycache__
