@@ -33,7 +33,7 @@ jobs:
           # Maps port 6379 on service container to the host
           - 6379:6379
       localstack:
-        image: localstack
+        image: localstack/localstack
         options: >-
           --health-cmd ""
           --health-interval 10s
