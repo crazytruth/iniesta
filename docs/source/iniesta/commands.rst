@@ -52,9 +52,31 @@ Requirements:
 
     Options:
       -e, --event TEXT       Event to publish into SNS  [required]
-      -m, --message TEXT     Message body to publish into SNS  [required]
+      -m, --message TEXT     Message body to publish into SNS
       -v, --version INTEGER  Version to publish into SNS
       --help                 Show this message and exit.
+
+Example
+^^^^^^^
+
+.. code-block:: sh
+
+    $ iniesta publish -e hello.iniesta
+    Publish Success!
+
+
+    REQUEST INFO
+    Message Event : hello.iniesta
+    Message Data : {}
+    Full Payload : {'MessageAttributes': {'iniesta_pass': {'DataType': 'String', 'StringValue': 'hello.iniesta'}, 'version': {'DataType': 'Number', 'StringValue': '1'}}, 'Message': '{}', 'MessageStructure': 'string'}
+    Message Length : 183
+
+
+    RESPONSE INFO
+    Message ID : 4e2585df-dc90-49b5-a40f-10fac01c23aa
+    Message Length : 291
+
+
 
 Test sending message to SQS
 ----------------------------
@@ -67,5 +89,14 @@ To send a custom message to a queue
     Usage: iniesta send [OPTIONS]
 
     Options:
-      -m, --message TEXT  Message body to publish to SQS  [required]
+      -m, --message TEXT  Message body to publish to SQS
       --help              Show this message and exit.
+
+Example
+^^^^^^^^
+
+.. code-block:: sh
+
+    $ iniesta send
+    Message Sent
+    MessageId: 0692141a-aee4-93fc-9b12-f0f5c5f313ac
