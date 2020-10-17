@@ -153,6 +153,7 @@ class SNSMessage(MessageAttributes):
         event: str,
         message: Any,
         version: int = 1,
+        raw_event: bool = False,
         **message_attributes,
     ):
         """
@@ -163,6 +164,7 @@ class SNSMessage(MessageAttributes):
         :param event: The event this message will publish.
         :param message: The message body to publish.
         :param version: Version of the message.
+        :param raw_event: If the event should be passed in as itself.
         :param message_attributes: Any message attributes
         :return: Instantiated instance of self.
         :rtype: :code:`SNSMessage`
@@ -174,7 +176,7 @@ class SNSMessage(MessageAttributes):
         for ma, mv in message_attributes.items():
             message_object.add_attribute(ma, mv)
 
-        message_object.add_event(event)
+        message_object.add_event(event, raw=raw_event)
         message_object.add_number_attribute("version", version)
         message_object.client = client
 

@@ -31,15 +31,7 @@ setup_kwargs = dict(
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
     ],
+    entry_points={"console_scripts": ["iniesta=iniesta.cli:cli"]},
 )
-
-try:
-    import click  # noqa: ignore=F401
-except ImportError:
-    pass
-else:
-    setup_kwargs.update(
-        {"entry_points": {"console_scripts": ["iniesta=iniesta.cli:cli"]}}
-    )
 
 setup(**setup_kwargs)

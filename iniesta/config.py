@@ -8,9 +8,8 @@ INIESTA_CACHES: Dict[str, dict] = {
 }
 
 #: The initialization type Iniesta will be initialized with.
-INIESTA_INITIALIZATION_TYPE: Optional[tuple] = (
-    None  # ["SNS_PRODUCER", "EVENT_POLLING", "QUEUE_POLLING", "CUSTOM"]
-)
+INIESTA_INITIALIZATION_TYPE: tuple = tuple()
+# ["SNS_PRODUCER", "EVENT_POLLING", "QUEUE_POLLING", "CUSTOM"]
 
 #: The topic arn for the SNS that will receive messages.
 INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN: str = ""
@@ -47,10 +46,10 @@ INIESTA_LOCK_RETRY_COUNT: int = 1
 INIESTA_LOCK_TIMEOUT: int = 10
 
 # mainly used for tests
-INIESTA_SQS_REGION_NAME: Optional[str] = None
+# INIESTA_SQS_REGION_NAME: Optional[str] = None
 INIESTA_SQS_ENDPOINT_URL: Optional[str] = None
-
-INIESTA_SNS_REGION_NAME: Optional[str] = None
+#
+# INIESTA_SNS_REGION_NAME: Optional[str] = None
 INIESTA_SNS_ENDPOINT_URL: Optional[str] = None
 
 INIESTA_DRY_RUN: bool = False

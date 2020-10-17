@@ -74,7 +74,10 @@ class _Iniesta(object):
     def unload_config(self, settings_object: Config) -> None:
         for c in dir(config):
             if c.isupper():
-                delattr(settings_object, c)
+                try:
+                    delattr(settings_object, c)
+                except AttributeError:
+                    pass
         self.config_imported = False
 
     def _order_initialization_type(self, settings_object: Config) -> list:

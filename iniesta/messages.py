@@ -28,7 +28,7 @@ class MessageAttributes(UserDict):
         if not isinstance(value, str):
             raise ValueError("Event must be a string.")
 
-        if not value.endswith(f".{settings.SERVICE_NAME}") and not raw:
+        if not raw and not value.endswith(f".{settings.get('SERVICE_NAME')}"):
             value = ".".join([value, settings.SERVICE_NAME])
 
         self.add_string_attribute(settings.INIESTA_SNS_EVENT_KEY, value)

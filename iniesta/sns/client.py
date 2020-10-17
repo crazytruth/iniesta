@@ -34,7 +34,7 @@ class SNSClient:
         self.topic_arn = (
             topic_arn or settings.INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN
         )
-        self.region_name = region_name or settings.INIESTA_SNS_REGION_NAME
+        self.region_name = region_name or BotoSession.aws_default_region
         self.endpoint_url = endpoint_url or settings.INIESTA_SNS_ENDPOINT_URL
 
     @classmethod
@@ -51,7 +51,7 @@ class SNSClient:
 
         :param topic_arn: If you would like to initialize this client with a
          different topic. Defaults to :code:`INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN` if not passed.
-        :param region_name: Takes priority or defaults to :code:`INIESTA_SNS_REGION_NAME` settings.
+        :param region_name: Takes priority or defaults to :code:`BotoSession.aws.default_region` settings.
         :param endpoint_url: Takes priority or defaults to :code:`INIESTA_SNS_ENDPOINT_URL` settings.
         :return: An initialized instance of :code:`cls` (:code:`SQSClient`).
         :rtype: :code:`SNSClient`
@@ -171,6 +171,7 @@ class SNSClient:
         event: str,
         message: Any,
         version: int = 1,
+        raw_event: bool = False,
         **message_attributes,
     ) -> SNSMessage:
         """
@@ -187,6 +188,7 @@ class SNSClient:
             event=event,
             message=message,
             version=version,
+            raw_event=raw_event,
             **message_attributes,
         )
         return message_payload

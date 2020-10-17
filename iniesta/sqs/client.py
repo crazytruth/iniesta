@@ -475,4 +475,7 @@ class SQSClient:
 
         :param message: The message body. A json encodable object.
         """
+        if not isinstance(message, str):
+            message = json.dumps(message)
+
         return SQSMessage(self, message)
