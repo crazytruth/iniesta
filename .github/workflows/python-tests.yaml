@@ -25,7 +25,7 @@ jobs:
         image: redis
         # Set health checks to wait until redis has started
         options: >-
-          --health-cmd "awslocal sqs list-queues"
+          --health-cmd "redis-cli ping"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -33,9 +33,9 @@ jobs:
           # Maps port 6379 on service container to the host
           - 6379:6379
       localstack:
-        image: localstack/localstack
+        image: localstack
         options: >-
-          --health-cmd ""
+          --health-cmd "awslocal sqs list-queues"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
