@@ -1,4 +1,4 @@
-.. image:: https://github.com/crazytruth/iniesta/raw/master/docs/_static/iniesta.png
+.. image:: https://github.com/crazytruth/iniesta/raw/master/docs/source/_static/iniesta.png
 
 *******
 Iniesta
@@ -262,7 +262,7 @@ Thanks to all the people at my prior company that worked with me to make this po
 Links
 =====
 
-- Documentation: http://iniesta.readthedocs.io/
+- Documentation: https://iniesta.readthedocs.io/en/latest/
 - Releases: https://pypi.org/project/insanic-iniesta/
 - Code: https://www.github.com/crazytruth/iniesta/
 - Issue Tracker: https://www.github.com/crazytruth/iniesta/issues
@@ -270,5 +270,5 @@ Links
 - Insanic Repository: https://www.github.com/crazytruth/insanic/
 
 .. _Insanic: https://github.com/crazytruth/insanic
-.. _Documentation: http://iniesta.readthedocs.io/?badge=latest
-.. _Commands Documentation: http://iniesta.readthedocs.io/commands?badge=latest
+.. _Documentation: https://iniesta.readthedocs.io/en/latest/
+.. _Commands Documentation: https://iniesta.readthedocs.io/en/latest/iniesta/commands/
