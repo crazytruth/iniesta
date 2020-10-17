@@ -12,7 +12,7 @@ INIESTA_INITIALIZATION_TYPE: tuple = tuple()
 # ["SNS_PRODUCER", "EVENT_POLLING", "QUEUE_POLLING", "CUSTOM"]
 
 #: The topic arn for the SNS that will receive messages.
-INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN: str = ""
+INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN: str = None
 
 #: The number of messages to receive while polling. Value between 0-10
 INIESTA_SQS_RECEIVE_MESSAGE_MAX_NUMBER_OF_MESSAGES: int = 10

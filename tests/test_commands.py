@@ -35,14 +35,14 @@ class TestCommands(SNSInfra):
         output = result.output.split("\n")
 
         assert output[0] == "Publish Success!"
-        assert output[1] == "REQUEST INFO"
-        assert output[2] == f"Message Event : {event}"
-        assert output[3] == f"Message Data : {message_body}"
-        assert output[4].startswith("Full Payload : ")
-        assert output[5].startswith("Message Length : ")
-        assert output[6] == "RESPONSE INFO"
-        assert output[7].startswith("Message ID : ")
-        assert output[8].startswith("Message Length : ")
+        assert output[3] == "REQUEST INFO"
+        assert output[4] == f"Message Event : {event}"
+        assert output[5] == f"Message Data : {message_body}"
+        assert output[6].startswith("Full Payload : ")
+        assert output[7].startswith("Message Length : ")
+        assert output[10] == "RESPONSE INFO"
+        assert output[11].startswith("Message ID : ")
+        assert output[12].startswith("Message Length : ")
 
     @pytest.mark.parametrize("initialization_types", ALL_INITIALIZATION_TYPES)
     def test_initialization_type(
