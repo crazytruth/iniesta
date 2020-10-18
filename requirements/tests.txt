@@ -51,7 +51,7 @@ pytest==6.1.1             # via -r tests.in, pytest-cov, pytest-redis, pytest-sa
 python-dateutil==2.8.1    # via insanic-framework
 redis==3.5.3              # via pytest-redis
 rfc3986==1.4.0            # via httpx
-sanic==20.6.3             # via -r tests.in, insanic-framework
+sanic==20.6.3             # via insanic-framework
 six==1.15.0               # via packaging, python-dateutil, tox, virtualenv
 sniffio==1.2.0            # via httpx
 toml==0.10.1              # via pytest, tox

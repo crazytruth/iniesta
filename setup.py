@@ -22,7 +22,6 @@ setup_kwargs = dict(
         "insanic-framework",
         "aiobotocore>=0.12.0",
         "aioredlock",
-        "sanic<20.7.0",
     ],
     license="MIT",
     zip_safe=False,

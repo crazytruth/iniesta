@@ -3,4 +3,3 @@ sphinx-issues
 sphinx-rtd-theme
 sphinxcontrib-log-cabinet
 sphinx-autodoc-typehints
-sanic<20.7.0

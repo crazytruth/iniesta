@@ -5,5 +5,4 @@ pytest-redis
 pytest-sanic
 tox
 insanic-framework
-sanic<=20.7.0
 Click
