@@ -3,7 +3,7 @@
 Change Log
 ===========
 
-0.3.5 (unreleased)
+0.3.5 (2020-10-19)
 ------------------
 
 - Initial Release to PyPI
