@@ -9,6 +9,12 @@ Preparation
 ------------
 
 -   All necessary AWS resources have been created
+
+    - A SNS Topic
+    - A SQS Queue
+    - Subscription with filter policies
+    - Proper permissions
+
 -   :code:`EVENT_POLLING` is included in :code:`INIESTA_INITIALIZATION_TYPE`
 -   Set :code:`INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN`
 -   Set your :code:`INIESTA_SQS_CONSUMER_FILTERS`
@@ -19,24 +25,31 @@ Preparation
     at least 3 different cache connections.
 
 
+To get an idea of what AWS Resources are needed, please
+refer to :doc:`aws_resources`.
+
 Execution
 ---------
 
 On initialization:
 
-#. Iniesta will verify the global topic arn defined in the settings exist.
-#. Verify that filter policies exist on AWS.
-#. Loads the iniesta settings to Insanic's settings
-#. Attaches the appropriate listeners.
+#.  Iniesta will verify the global topic arn defined
+    in the settings exist. (e.g.
+    the :code:`INIESTA_SNS_PRODUCER_GLOBAL_TOPIC_ARN` setting)
+#.  Verify that filter policies exist on AWS.
+    The :code:`INIESTA_SQS_CONSUMER_FILTERS`.
+#.  Loads the iniesta settings to Insanic's settings
+#.  Attaches the appropriate listeners.
 
 
 Then on start up:
 
-#. Initializes the :code:`SQSClient` and sets it to :code:`app.messi`.
-#. Checks if the queue exists.
-#. Checks if the queue is subscribed to the topic.
-#. Checks if the necessary permissions exists.
-#. Starts polling the queue for messages.
+#.  Initializes the :code:`SQSClient` and sets it
+    to :code:`app.messi`.
+#.  Checks if the queue exists.
+#.  Checks if the queue is subscribed to the topic.
+#.  Checks if the necessary permissions exists.
+#.  Starts polling the queue for messages.
 
 
 Now, we should be able to receive message from the queue.
@@ -48,7 +61,7 @@ Handlers
 ---------
 
 We need to attach handlers for each event.  :code:`SQSClient`
-provides class methods to attach handlers to process the
+provides a class method to attach handlers to process the
 received messages.
 
 .. code-block:: python
@@ -87,7 +100,7 @@ Note that the callable must receive a :code:`message` argument.
 Also the events can be a list if you want to bind the same
 handler for multiple events.
 
-And to define a default handler, don't set a event. The default
+To define a default handler, don't set a event. The default
 handler is if Iniesta receives a message that doesn't have
 an attached handler, it falls back to the default handler.
 
@@ -102,7 +115,7 @@ an attached handler, it falls back to the default handler.
 Polling
 --------
 
-The typical process flow for when Iniesta receives a message
+The typical flow for when Iniesta receives a message
 is as follows.
 
 #.  Receives message from SQS.
@@ -110,18 +123,19 @@ is as follows.
     :code:`message_id` to enforce idempotency.
 #.  Once acquired, look for a handler:
 
-    #.  Matching the event in :code:`INIESTA_SNS_EVENT_KEY`
-        in the received message body.
-    #.  If not found look for a default handler.
-    #.  If not found raise :code:`KeyError`.
+    #.  Match the event in :code:`INIESTA_SNS_EVENT_KEY`
+        in the received message body for a registered
+        handler.
+    #.  If not found, look for a default handler.
+    #.  If not found, raise :code:`KeyError`.
 
 #.  If a handler is found execute!
 
-    #.  If executed and no exception is raised, delete
+    #.  If executed, and no exception is raised, delete
         the message from sqs.
     #.  If exception is raises, do nothing so the
         message can be consumed again after the
-        visibility timeout.
+        invisibility timeout.
 
 .. note::
 

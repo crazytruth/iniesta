@@ -6,16 +6,16 @@ do anything and would like to set everything up your self.
 By settings :code:`CUSTOM` in your
 :code:`INIESTA_INITIALIZATION_TYPE`, Iniesta, only loads the
 configs and you must create all the SNS and SQS Clients yourself,
-as well as managing the lifecycle of the client.
+as well as managing the lifecycle of the clients.
 
 
 Polling Custom Queue
 ---------------------
 
-First we need to create a custom SQSClient and start
+First we need to create a custom :code:`SQSClient` and start
 polling in the listeners.
 
-1. Initialize and instantiate a SQSClient in listener and start polling
+1. Initialize and instantiate a :code:`SQSClient` in listener and start polling
 
 .. code-block:: python
 
@@ -46,7 +46,7 @@ polling in the listeners.
     app.register_listener(after_server_start_start_polling, 'after_server_start')
     app.register_listener(before_server_stop_stop_polling, 'before_server_stop')
 
-3. Create handlers and attach to custom sqsclient
+3. Create handlers and attach to custom :code:`SQSClient`
 
 .. code-block:: python
 
@@ -66,9 +66,9 @@ polling in the listeners.
 Publishing to Custom SNS
 -------------------------
 
-All we need to create a custom SNSClient and initialize it.
+All we need to create a custom :code:`SNSClient` and initialize it.
 
-1. Initialize SNSClient
+1. Initialize :code:`SNSClient`
 
 .. code-block:: python
 

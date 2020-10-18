@@ -17,12 +17,8 @@
    iniesta/type_queue_polling
    iniesta/type_custom
    iniesta/commands
-
-
-
    iniesta/aws_resources
    Change Logs <iniesta/changelog>
-
    iniesta/contributing
 
 API Reference
@@ -42,6 +38,5 @@ method, this part of the documentation is for you.
 Indices and tables
 ==================
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+- :ref:`genindex`
+- :ref:`modindex`

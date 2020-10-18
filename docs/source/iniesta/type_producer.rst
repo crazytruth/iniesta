@@ -5,7 +5,7 @@ If your application produces events for other application
 to consume, you should set your :code:`INIESTA_INITIALIZATION_TYPE`
 to include :code:`SNS_PRODUCER`.
 
-On start up of Insanic a :code:`SNSClient` instance is created and
+On start up of Insanic, a :code:`SNSClient` instance is created and
 attached to the application.  It is accessible with :code:`app.xavi`.
 It is recommended to have only one :code:`SNSClient` for each
 topic until the server is stopped.  For other topics, you will need to
@@ -15,7 +15,7 @@ create a separate :code:`SNSClient` and manage its lifecycle.
 Publishing Messages
 --------------------
 
-With our client initialized, now we can create a :code:`SNSMessage` to
+With our client initialized, we can now create a :code:`SNSMessage` to
 publish to our topic.  There are several ways we can do this.
 We can to either publish messages explicitly or decorate view functions or methods to
 publish events on successful execution.
@@ -86,7 +86,7 @@ with the response body as the message.
 
     Publishing will only trigger if the response has a status_code
     of less than 300. Any exceptions raised or a response with
-    a explicit status code of more than 300 will not publish
+    a explicit status code of more than 300 will NOT publish
     a message.
 
 
@@ -109,7 +109,11 @@ async class method to initialize our client.
         )
 
 This will confirm the topic exists and return an initialized
-:code:`SNSClient` instance.
+:code:`SNSClient` instance.  It is not recommended creating
+a :code:`SNSClient` each time your need to publish a message
+so, you will need to manage its lifecycle.  A possible approach
+is to initialize on the before start listeners and attach
+it to the application.
 
 
 See Also

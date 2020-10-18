@@ -6,7 +6,12 @@ Change Log
 0.3.5 (unreleased)
 ------------------
 
-- Nothing changed yet.
+- Initial Release to PyPI
+
+
+.. note::
+
+    Up until here, Iniesta has been an internal release only.
 
 
 0.3.4 (2020-04-02)

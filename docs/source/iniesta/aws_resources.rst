@@ -36,7 +36,7 @@ No separate settings required for setting up a SQS Queue.
 
     create_queue_response = sqs.create_queue(QueueName='iniesta-development-example')
 
-    # to get your queue arn. We need this to subscribe later.
+    # This request is need to get your queue arn. We need this to subscribe later.
     queue_attributes = sqs.get_queue_attributes(
         QueueUrl=create_queue_response["QueueUrl"], AttributeNames=["QueueArn"]
     )

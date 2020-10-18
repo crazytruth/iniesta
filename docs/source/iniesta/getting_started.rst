@@ -16,7 +16,7 @@ Prerequisites
 
 #.  Confirm you have your subscriptions registered for your topic and queue.
 
-#.  Confirm you have the necessary permissions for your Queue so that the topic can send messages to the queue.
+#.  Confirm you have the necessary permissions for your queue so that the topic can send messages to the queue.
 
 .. note::
 

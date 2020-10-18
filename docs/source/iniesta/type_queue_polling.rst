@@ -45,8 +45,9 @@ set up a single default handler for queue polling.
 
 .. note::
 
-    There is currently a know issue where if the module
-    containing the handlers are not imported on start up
+    Like with event polling handlers, there is currently
+    a know issue where if the module containing the
+    handlers are not imported on start up
     the handlers do not get registered.  For a quick
     fix import the module(s) where your Insanic app resides.
 

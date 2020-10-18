@@ -37,11 +37,13 @@ if :code:`INIESTA_SQS_CONSUMER_FILTERS = ['some.*']`
     $ iniesta filter-policies
     {"iniesta_pass": [{"prefix": "some."}]}
 
+This is in the format that AWS's subscribe API requires.
+
 
 Test publishing
 ---------------
 
-A CLI for sending a message to a SNS Topic.
+A CLI for sending a message to the default SNS Topic.
 
 Requirements:
 
@@ -81,7 +83,7 @@ Example
 Test sending message to SQS
 ----------------------------
 
-To send a custom message to a queue
+To send a custom message to the default queue.
 
 .. code-block:: bash
 
