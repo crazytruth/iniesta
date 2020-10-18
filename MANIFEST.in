@@ -7,6 +7,7 @@ include tox.ini
 include requirements/*.txt
 exclude *.png
 exclude *.yaml
+exclude *.toml
 graft tests
 graft docs
 graft .github
