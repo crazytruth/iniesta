@@ -1,4 +1,4 @@
-.. image:: https://github.com/crazytruth/iniesta/raw/master/docs/source/_static/iniesta.png
+.. image:: https://github.com/crazytruth/iniesta/raw/master/images/iniesta200px.png
 
 *******
 Iniesta
@@ -17,10 +17,10 @@ Iniesta
 .. |Codecov| image:: https://codecov.io/gh/crazytruth/iniesta/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/crazytruth/iniesta
 
-.. |PyPI version| image:: https://img.shields.io/pypi/v/iniesta-framework
+.. |PyPI version| image:: https://img.shields.io/pypi/v/insanic-iniesta
     :target: https://pypi.org/project/insanic-iniesta/
 
-.. |PyPI pyversions| image:: https://img.shields.io/pypi/pyversions/insanic-framework
+.. |PyPI pyversions| image:: https://img.shields.io/pypi/pyversions/insanic-iniesta
     :target: https://pypi.org/project/insanic-iniesta/
 
 .. |Black| image:: https://img.shields.io/badge/code%20style-black-000000.svg
