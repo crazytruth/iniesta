@@ -23,7 +23,6 @@ on_rtd = os.environ.get("READTHEDOCS", None) == "True"
 # -- Project information -----------------------------------------------------
 
 project = "Iniesta"
-copyright = "2020, Kwang Jin Kim"
 author = "Kwang Jin Kim"
 
 version = iniesta.__version__
